@@ -1,0 +1,44 @@
+name: yvsanfang
+
+description: 御膳房 Flutter App
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  supabase_flutter: ^2.9.1
+  flutter_dotenv: ^5.2.1
+  image_picker: ^1.1.2
+  intl: ^0.20.2
+  mailer: ^6.1.2
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "image/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "image/logo.png"
+
+
+
