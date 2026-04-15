@@ -1,3 +1,12 @@
+/// 菜品模型及相关规格模型
+/// 
+/// 包含三个类：
+/// 1. Dish：菜品基本信息
+///    - enableMultiSpec: 是否启用多规格选择
+///    - specGroups: 规格组列表（如：口味、温度、配料）
+/// 2. DishSpecGroup：规格组（必选/可选、最小/最大选择数）
+/// 3. DishSpecValue：规格选项（名称、加价）
+
 class Dish {
   Dish({
     required this.id,

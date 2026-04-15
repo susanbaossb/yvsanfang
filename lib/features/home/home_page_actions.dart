@@ -1,5 +1,15 @@
 // ignore_for_file: invalid_use_of_protected_member
 
+/// 主页业务动作扩展
+/// 
+/// 功能：
+/// - 数据加载：_loadMenu、_loadOrders、_loadPoints、_loadRecipeCategories
+/// - 签到相关：_doCheckIn、_checkToday、_loadMonthCheckins
+/// - 购物车操作：_addDish、_removeDish、_addCartEntry、_removeCartKey
+/// - 订单操作：_placeOrder、_updateOrderStatus、_deleteOrder
+/// - 页面跳转：_openMenuManager、_openSettingsManager、_openProfileEdit
+/// - 辅助方法：_buildCartKey、_dishQuantity、_normalizedOrderStatus
+
 part of 'home_page.dart';
 
 extension _HomePageActions on _HomePageState {

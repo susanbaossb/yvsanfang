@@ -1,3 +1,19 @@
+/// 积分服务
+/// 
+/// 功能：
+/// 1. fetchAllProfiles: 获取所有用户资料列表
+/// 2. fetchMyPoints: 获取当前用户积分
+/// 3. isCheckedInToday: 检查今日是否已签到
+/// 4. dailyCheckIn: 每日签到（根据日期发放积分奖励）
+/// 5. fetchMonthCheckins: 获取月度签到记录
+/// 6. changePoints: 修改用户积分（增加/减少）
+/// 7. deductPoints: 扣减积分（下单时调用）
+/// 
+/// 积分奖励规则：
+/// - 每月 1-5 日签到：+10 积分
+/// - 每月 6-10 日签到：+20 积分
+/// - 每月 11-30 日签到：+30 积分
+
 import '../core/supabase_client.dart';
 import '../models/user_profile.dart';
 

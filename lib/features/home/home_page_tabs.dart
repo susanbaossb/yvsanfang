@@ -1,5 +1,15 @@
 // ignore_for_file: invalid_use_of_protected_member
 
+/// 主页 Tab 视图扩展
+/// 
+/// 功能：
+/// - _buildKitchenTab：厨房 Tab（菜品列表、分类筛选、购物车栏）
+/// - _buildOrdersTab：订单 Tab（订单列表、状态筛选、操作按钮）
+/// - _buildActivitiesTab：活动 Tab（签到日历、积分展示）
+/// - _buildProfileTab：我的 Tab（个人信息入口、快捷功能）
+/// - _buildBottomOrderBar：底部购物车栏
+/// - _buildCartDetailPanel：购物车详情弹层
+
 part of 'home_page.dart';
 
 extension _HomePageTabs on _HomePageState {

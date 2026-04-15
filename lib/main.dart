@@ -1,9 +1,19 @@
+/// 程序入口文件
+///
+/// 功能：
+/// 1. 初始化 Flutter 环境（WidgetsFlutterBinding）
+/// 2. 配置全局错误处理（FlutterError、PlatformDispatcher）
+/// 3. 加载 .env 环境变量配置
+/// 4. 先显示启动图（SplashScreen），后台初始化 Supabase
+///
+/// 作者：susanbao
+/// 版本：1.0.0
+
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 
 import 'app.dart';
 import 'core/supabase_client.dart';
@@ -74,5 +84,3 @@ class _StartupErrorApp extends StatelessWidget {
     );
   }
 }
-
-

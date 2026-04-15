@@ -1,3 +1,14 @@
+/// 用户资料模型
+/// 
+/// 功能：存储和解析用户基本信息
+/// 字段说明：
+/// - id: 用户唯一标识（UUID，来自 Supabase Auth）
+/// - nickname: 昵称
+/// - role: 身份角色（我、女朋友、男朋友）
+/// - points: 用户积分余额
+/// - avatarUrl: 头像图片 URL
+/// - email: 绑定的邮箱地址
+
 class UserProfile {
   UserProfile({
     required this.id,

@@ -1,3 +1,8 @@
+/// 菜谱分类模型
+/// 
+/// 功能：存储菜谱分类信息（名称、排序顺序、创建时间）
+/// 用于在厨房 Tab 中按分类筛选菜品
+
 class RecipeCategory {
   RecipeCategory({
     required this.id,

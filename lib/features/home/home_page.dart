@@ -1,3 +1,18 @@
+/// 主页（HomePage）
+/// 
+/// 功能：应用主页面，包含底部导航栏的四个 Tab
+/// - Tab 0 厨房：浏览菜品、加入购物车、下单
+/// - Tab 1 订单：查看和管理订单
+/// - Tab 2 活动：每日签到、查看积分
+/// - Tab 3 我的：个人信息、分类管理、菜单管理、设置管理
+/// 
+/// 文件结构：
+/// - home_page.dart：主页 State 和路由壳
+/// - home_page_models.dart：购物车私有模型
+/// - home_page_actions.dart：业务动作方法
+/// - home_page_dialogs.dart：弹窗组件
+/// - home_page_tabs.dart：各 Tab 的 UI 构建
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

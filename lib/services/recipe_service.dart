@@ -1,3 +1,14 @@
+/// 菜谱分类服务
+/// 
+/// 功能：
+/// 1. fetchCategories: 获取所有菜谱分类
+/// 2. createCategory: 创建新分类
+/// 3. deleteCategory: 删除分类
+/// 4. fetchRecipes: 获取菜谱列表
+/// 5. createRecipe: 创建菜谱
+/// 
+/// 注意：分类用于厨房 Tab 的菜品筛选
+
 import '../core/supabase_client.dart';
 import '../models/recipe.dart';
 import '../models/recipe_category.dart';

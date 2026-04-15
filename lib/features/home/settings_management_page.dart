@@ -1,3 +1,13 @@
+/// 设置管理页面（管理员功能）
+/// 
+/// 功能：
+/// 1. 查看所有注册用户的列表
+/// 2. 为指定用户增加积分
+/// 3. 为指定用户减少积分
+/// 4. 显示用户昵称、身份、ID、当前积分
+/// 
+/// 入口：在"我的"页面点击设置图标（showPointsAdjustSettings=true 时显示）
+
 import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';

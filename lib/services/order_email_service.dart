@@ -1,3 +1,11 @@
+/// 订单邮件通知服务
+/// 
+/// 功能：
+/// - sendOrderEmail: 下单成功后发送邮件通知
+/// 
+/// 邮件内容包含：订单号、下单人昵称、下单时间、订单明细、合计积分、备注
+/// 使用 QQ 邮箱 SMTP 发送，需要在 .env 配置 QQ_EMAIL_ACCOUNT 和 QQ_EMAIL_AUTH_CODE
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';

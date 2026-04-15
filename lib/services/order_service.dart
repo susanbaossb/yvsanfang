@@ -1,3 +1,14 @@
+/// 订单服务及购物车相关模型
+/// 
+/// 功能：
+/// 1. CartItemSpec: 购物车规格项（规格组名、规格值、加价）
+/// 2. CartItem: 购物车项（菜品、数量、单价、已选规格）
+/// 3. placeOrder: 下单（扣减积分、创建订单和订单项）
+/// 4. fetchOrders: 获取订单列表
+/// 5. updateOrderStatus: 更新订单状态
+/// 
+/// 购物车 Key 生成规则：dishId | specs（如有多规格）
+
 import '../core/supabase_client.dart';
 import '../models/dish.dart';
 import '../models/order_summary.dart';

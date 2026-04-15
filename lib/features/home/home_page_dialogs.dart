@@ -1,5 +1,11 @@
 // ignore_for_file: invalid_use_of_protected_member
 
+/// 主页弹窗扩展
+/// 
+/// 功能：
+/// - _showSpecSelector：规格选择底部弹窗（多规格菜品）
+/// - _showCategoryManager：分类管理弹窗（新增/删除分类）
+
 part of 'home_page.dart';
 
 

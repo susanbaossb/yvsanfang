@@ -1,3 +1,14 @@
+/// 菜单/菜品服务
+/// 
+/// 功能：
+/// 1. fetchAvailableDishes: 获取可用的菜品列表
+/// 2. fetchDishes: 获取菜品列表（可按 available 筛选）
+/// 3. uploadDishImage: 上传菜品图片到 Storage
+/// 4. createDish: 创建新菜品
+/// 5. updateDish: 更新菜品信息
+/// 6. updateDishAvailability: 更新菜品上下架状态
+/// 7. deleteDish: 删除菜品（软删除，标记 deleted=true）
+
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';

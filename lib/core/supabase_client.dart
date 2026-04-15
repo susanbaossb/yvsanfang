@@ -1,3 +1,14 @@
+/// Supabase 客户端配置
+/// 
+/// 功能：
+/// 1. AppSupabaseConfig：提供 Supabase URL 和 ANON_KEY
+///    - 优先从 .env 文件读取
+///    - 其次从 dart-define 读取
+///    - 最后使用默认值
+/// 2. AppSupabase：全局 SupabaseClient 单例访问器
+/// 
+/// 使用方式：通过 AppSupabase.client 访问数据库操作
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

@@ -1,3 +1,12 @@
+/// 应用根组件
+/// 
+/// 功能：
+/// 1. 定义应用主题（Material 3，粉色系配色）
+/// 2. 配置全局组件样式（卡片、按钮、输入框、导航栏等）
+/// 3. 设置启动页面为 SplashScreen
+///
+/// 配色方案：粉色系（#E85D9A 主色）搭配奶白背景
+
 import 'package:flutter/material.dart';
 
 import 'features/splash/splash_screen.dart';

@@ -1,3 +1,13 @@
+/// 登录页面
+/// 
+/// 功能：
+/// 1. 首次启动时显示登录表单（昵称+身份选择）
+/// 2. 自动进行匿名登录（Supabase Auth）
+/// 3. 若用户已完善资料，直接跳转到首页
+/// 4. 若为新用户，填写资料后保存并跳转
+/// 
+/// 流程：匿名登录 -> 检查 profiles 表 -> 有资料跳转首页 / 无资料显示表单
+
 import 'package:flutter/material.dart';
 
 import '../../features/home/home_page.dart';

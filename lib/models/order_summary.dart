@@ -1,3 +1,11 @@
+/// 订单模型及相关子模型
+/// 
+/// 包含两个类：
+/// 1. OrderDishItem：订单中的菜品项（名称、数量、单价、图片）
+/// 2. OrderSummary：订单摘要（状态、总额、创建时间、菜品列表、备注）
+/// 
+/// 状态类型：unfinished（未完成）、completed（已完成）、cancelled（已取消）、deleted（已删除）
+
 class OrderDishItem {
   OrderDishItem({
     required this.name,

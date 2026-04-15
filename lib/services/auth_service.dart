@@ -1,3 +1,15 @@
+/// 认证服务
+/// 
+/// 功能：
+/// 1. ensureSignedIn: 确保用户已登录（匿名登录）
+/// 2. currentUserId: 获取当前用户 ID
+/// 3. currentUserEmail: 获取当前用户邮箱
+/// 4. fetchMyProfile: 获取当前用户资料
+/// 5. saveProfile: 保存用户资料（昵称、身份、头像、邮箱）
+/// 6. uploadAvatar: 上传用户头像到 Storage
+/// 7. bindEmail: 绑定邮箱
+/// 8. signInWithEmail: 邮箱密码登录
+
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';

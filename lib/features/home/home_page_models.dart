@@ -1,3 +1,8 @@
+/// 主页私有模型
+/// 
+/// _CartEntry：购物车条目（菜品、数量、单价、已选规格）
+/// 用于 HomePage 内部管理购物车状态
+
 part of 'home_page.dart';
 
 class _CartEntry {
