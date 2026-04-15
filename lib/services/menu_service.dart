@@ -11,7 +11,7 @@ class MenuService {
   }
 
   Future<List<Dish>> fetchDishes({bool? available}) async {
-    var query = AppSupabase.client.from('dishes').select();
+    var query = AppSupabase.client.from('dishes').select().eq('deleted', false);
 
     if (available != null) {
       query = query.eq('available', available);
@@ -101,6 +101,9 @@ class MenuService {
   Future<void> deleteDish({
     required String dishId,
   }) async {
-    await AppSupabase.client.from('dishes').delete().eq('id', dishId);
+    await AppSupabase.client
+        .from('dishes')
+        .update({'deleted': true})
+        .eq('id', dishId);
   }
 }

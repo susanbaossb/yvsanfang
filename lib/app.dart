@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'features/auth/login_page.dart';
+import 'features/splash/splash_screen.dart';
 
 class DujiaYushanfangApp extends StatelessWidget {
   const DujiaYushanfangApp({super.key});
@@ -56,7 +56,7 @@ class DujiaYushanfangApp extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(48),
+            minimumSize: const Size(0, 48),
             elevation: 0,
             shadowColor: const Color(0xFFFFA5CA).withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -103,7 +103,7 @@ class DujiaYushanfangApp extends StatelessWidget {
           backgroundColor: Colors.white,
         ),
       ),
-      home: const LoginPage(),
+      home: const SplashScreen(),
     );
   }
 }

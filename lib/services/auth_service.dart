@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -35,6 +37,10 @@ class AuthService {
     return user.id;
   }
 
+  String? get currentUserEmail {
+    return AppSupabase.client.auth.currentUser?.email;
+  }
+
   Future<UserProfile?> fetchMyProfile() async {
     final id = currentUserId;
     final result = await AppSupabase.client
@@ -53,12 +59,54 @@ class AuthService {
   Future<UserProfile> saveProfile({
     required String nickname,
     required String role,
+    String? avatarUrl,
+    String? email,
   }) async {
     final id = currentUserId;
+    final data = <String, dynamic>{
+      'id': id,
+      'nickname': nickname,
+      'role': role,
+    };
+    if (avatarUrl != null) {
+      data['avatar_url'] = avatarUrl;
+    }
+    if (email != null && email.isNotEmpty) {
+      data['email'] = email;
+    }
     final result = await AppSupabase.client
         .from('profiles')
-        .upsert({'id': id, 'nickname': nickname, 'role': role}).select().single();
+        .upsert(data).select().single();
 
     return UserProfile.fromJson(result);
+  }
+
+  Future<String> uploadAvatar({
+    required Uint8List bytes,
+    required String userId,
+  }) async {
+    final path = 'avatars/$userId.jpg';
+    await AppSupabase.client.storage.from('dish-images').uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(
+            upsert: true,
+            contentType: 'image/jpeg',
+          ),
+        );
+    return AppSupabase.client.storage.from('dish-images').getPublicUrl(path);
+  }
+
+  Future<void> bindEmail(String email) async {
+    await AppSupabase.client.auth.updateUser(
+      UserAttributes(data: {'email': email}),
+    );
+  }
+
+  Future<void> signInWithEmail(String email, String password) async {
+    await AppSupabase.client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
   }
 }

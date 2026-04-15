@@ -32,25 +32,27 @@ Future<void> main() async {
     return true;
   };
 
-
+  // 先加载 .env
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {
     debugPrint('.env 未加载，回退到 dart-define / 默认配置');
   }
 
+  // 先显示启动图（无需等待初始化）
+  runApp(const DujiaYushanfangApp());
+
+  // 后台初始化 Supabase
   try {
     await Supabase.initialize(
       url: AppSupabaseConfig.url,
       anonKey: AppSupabaseConfig.anonKey,
     );
+    debugPrint('Supabase 初始化完成');
   } catch (error) {
-
-    runApp(_StartupErrorApp(message: 'Supabase 初始化失败：$error'));
-    return;
+    // 初始化失败，显示错误（此时 APP 已启动）
+    debugPrint('Supabase 初始化失败：$error');
   }
-
-  runApp(const DujiaYushanfangApp());
 }
 
 class _StartupErrorApp extends StatelessWidget {

@@ -2,7 +2,6 @@
 
 part of 'home_page.dart';
 
-
 extension _HomePageActions on _HomePageState {
   Future<void> _loadMenu() async {
     setState(() => _loadingMenu = true);
@@ -51,7 +50,8 @@ extension _HomePageActions on _HomePageState {
   Future<void> _loadPoints() async {
     setState(() => _loadingPoints = true);
     try {
-      final points = await _pointsService.fetchMyPoints(_authService.currentUserId);
+      final points =
+          await _pointsService.fetchMyPoints(_authService.currentUserId);
       if (!mounted) return;
       setState(() => _myPoints = points);
     } catch (_) {
@@ -62,16 +62,17 @@ extension _HomePageActions on _HomePageState {
 
   Future<void> _checkToday() async {
     try {
-      final checked = await _pointsService.isCheckedInToday(_authService.currentUserId);
+      final checked =
+          await _pointsService.isCheckedInToday(_authService.currentUserId);
       if (!mounted) return;
       setState(() => _checkedInToday = checked);
     } catch (_) {}
   }
 
   int _rewardForDay(int day) {
-    if (day <= 5) return 10;
-    if (day <= 10) return 20;
-    return 30;
+    if (day <= 7) return 1;
+    if (day <= 12) return 2;
+    return 3;
   }
 
   Future<void> _loadMonthCheckins() async {
@@ -121,8 +122,9 @@ extension _HomePageActions on _HomePageState {
     final selectedSpecs = await _showSpecSelector(dish);
     if (!mounted || selectedSpecs == null) return;
 
-    final unitPrice =
-        dish.price + selectedSpecs.fold<double>(0, (sum, item) => sum + item.priceAdjustment);
+    final unitPrice = dish.price +
+        selectedSpecs.fold<double>(
+            0, (sum, item) => sum + item.priceAdjustment);
     _addCartEntry(
       dish: dish,
       selectedSpecs: selectedSpecs,
@@ -158,7 +160,8 @@ extension _HomePageActions on _HomePageState {
         .toList();
     if (candidateKeys.isEmpty) return;
 
-    candidateKeys.sort((a, b) => _cart[b]!.quantity.compareTo(_cart[a]!.quantity));
+    candidateKeys
+        .sort((a, b) => _cart[b]!.quantity.compareTo(_cart[a]!.quantity));
     _removeCartKey(candidateKeys.first);
   }
 
@@ -202,14 +205,20 @@ extension _HomePageActions on _HomePageState {
         .toList();
   }
 
-  double get _cartTotal => _cartItems.fold<double>(0, (sum, item) => sum + item.subtotal);
+  double get _cartTotal =>
+      _cartItems.fold<double>(0, (sum, item) => sum + item.subtotal);
 
-  int get _cartCount => _cart.values.fold<int>(0, (sum, entry) => sum + entry.quantity);
+  int get _cartCount =>
+      _cart.values.fold<int>(0, (sum, entry) => sum + entry.quantity);
 
   List<String> get _categories {
-    final dishCategories = _dishes.map((e) => e.category.trim()).where((e) => e.isNotEmpty);
+    final dishCategories =
+        _dishes.map((e) => e.category.trim()).where((e) => e.isNotEmpty);
     final recipeCategoryNames = _recipeCategories.map((e) => e.name);
-    return ['全部', ...{...dishCategories, ...recipeCategoryNames}];
+    return [
+      '全部',
+      ...{...dishCategories, ...recipeCategoryNames}
+    ];
   }
 
   List<Dish> get _filteredDishes {
@@ -237,8 +246,8 @@ extension _HomePageActions on _HomePageState {
   }
 
   List<OrderSummary> get _filteredOrders {
-    final visibleOrders =
-        _orders.where((order) => _normalizedOrderStatus(order.status) != 'deleted');
+    final visibleOrders = _orders
+        .where((order) => _normalizedOrderStatus(order.status) != 'deleted');
     if (_orderFilter == '全部') {
       return visibleOrders.toList();
     }
@@ -246,7 +255,6 @@ extension _HomePageActions on _HomePageState {
         .where((order) => _normalizedOrderStatus(order.status) == _orderFilter)
         .toList();
   }
-
 
   Future<void> _placeOrder() async {
     if (_cartItems.isEmpty) return;
@@ -307,21 +315,21 @@ extension _HomePageActions on _HomePageState {
       }
 
       if (!mounted) return;
-      setState(_cart.clear);
+      setState(() {
+        _cart.clear();
+        _showCartDetail = false;
+      });
       await _loadOrders();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            mailError == null
-                ? '下单成功，邮件已发送！'
-                : '下单成功，但邮件发送失败：$mailError',
+            mailError == null ? '下单成功，邮件已发送！' : '下单成功，但邮件发送失败：$mailError',
           ),
         ),
       );
     } catch (e) {
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('下单失败：$e')),
@@ -377,7 +385,6 @@ extension _HomePageActions on _HomePageState {
     await _updateOrderStatus(order, 'deleted');
   }
 
-
   Future<void> _openMenuManager() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const MenuManagementPage()),
@@ -397,6 +404,16 @@ extension _HomePageActions on _HomePageState {
     await _loadPoints();
   }
 
+  Future<void> _openProfileEdit() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+          builder: (_) => ProfileEditPage(profile: widget.profile)),
+    );
+    if (result == true && !mounted) return;
+    // 刷新页面状态
+    await _loadPoints();
+    await _loadMenu();
+  }
 
   String _statusText(String raw) {
     switch (_normalizedOrderStatus(raw)) {

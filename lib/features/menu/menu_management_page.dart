@@ -219,7 +219,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                   if (categoryOptions.isEmpty)
 
                     Text(
-                      '暂无分类，请先在首页“我的-分类管理”中添加分类',
+                      '暂无分类，请先在首页"我的-分类管理"中添加分类',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   const SizedBox(height: 12),
@@ -397,7 +397,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
           description: safeDesc,
           category: safeCategory,
           price: parsedPrice,
-          rating: 5,
+          rating: rating,
           enableMultiSpec: enableMultiSpec,
           specGroups: normalizedSpecGroups,
           imageUrl: imageUrl,
@@ -594,7 +594,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('删除菜品'),
-        content: Text('确认删除“${dish.name}”吗？删除后不可恢复。'),
+        content: Text('确认删除"${dish.name}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -602,7 +602,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
+            child: const Text('确认'),
           ),
         ],
       ),
@@ -688,31 +688,29 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                                         )
                                       : const CircleAvatar(child: Icon(Icons.fastfood_outlined)),
                                   title: Text(dish.name),
-                                  subtitle: Text(
-                                    '${dish.category} · ¥${dish.price.toStringAsFixed(2)} · ${dish.enableMultiSpec ? '多规格' : '单规格'}\n${dish.description}',
-                                  ),
-                                  isThreeLine: true,
-                                  trailing: SizedBox(
-                                    width: 168,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          onPressed: updating ? null : () => _showDishEditor(dish: dish),
-                                          icon: const Icon(Icons.edit_outlined),
-                                        ),
-                                        IconButton(
-                                          onPressed: updating ? null : () => _deleteDish(dish),
-                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                        ),
-                                        Switch(
-                                          value: dish.available,
-                                          onChanged: updating
-                                              ? null
-                                              : (value) => _toggleAvailability(dish, value),
-                                        ),
-                                      ],
-                                    ),
+                                  subtitle: Text('${dish.category} · ¥${dish.price.toStringAsFixed(2)}'),
+                                  isThreeLine: false,
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        onPressed: updating ? null : () => _showDishEditor(dish: dish),
+                                        icon: const Icon(Icons.edit_outlined, size: 20),
+                                      ),
+                                      IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        onPressed: updating ? null : () => _deleteDish(dish),
+                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                      ),
+                                      Switch(
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        value: dish.available,
+                                        onChanged: updating
+                                            ? null
+                                            : (value) => _toggleAvailability(dish, value),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );

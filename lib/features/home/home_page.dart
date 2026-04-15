@@ -13,6 +13,7 @@ import '../../services/order_service.dart';
 import '../../services/points_service.dart';
 import '../../services/recipe_service.dart';
 import '../menu/menu_management_page.dart';
+import 'profile_edit_page.dart';
 import 'settings_management_page.dart';
 
 part 'home_page_actions.dart';
@@ -57,6 +58,7 @@ class _HomePageState extends State<HomePage> {
   bool _checkedInToday = false;
   Set<String> _monthChecked = {};
   bool _expandAll = false;
+  bool _showCartDetail = false;
 
   @override
   void initState() {
@@ -95,21 +97,32 @@ class _HomePageState extends State<HomePage> {
             ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF4FA), Color(0xFFFFFCFE)],
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFF4FA), Color(0xFFFFFCFE)],
+              ),
+            ),
+            child: body,
           ),
-        ),
-        child: body,
+          if (_tabIndex == 0 && _cartCount > 0 && _showCartDetail)
+            _HomePageTabs(this)._buildCartDetailPanel(),
+        ],
       ),
       bottomSheet: _buildBottomOrderBar(),
       bottomNavigationBar: NavigationBar(
         elevation: 1,
         selectedIndex: _tabIndex,
-        onDestinationSelected: (index) => setState(() => _tabIndex = index),
+        onDestinationSelected: (index) => setState(() {
+          _tabIndex = index;
+          if (index != 0) {
+            _showCartDetail = false;
+          }
+        }),
         destinations: const [
           NavigationDestination(
               icon: Icon(Icons.soup_kitchen_outlined), label: '厨房'),

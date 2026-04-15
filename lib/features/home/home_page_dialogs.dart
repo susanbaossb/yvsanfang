@@ -6,6 +6,14 @@ part of 'home_page.dart';
 extension _HomePageDialogs on _HomePageState {
   Future<List<CartItemSpec>?> _showSpecSelector(Dish dish) {
     final selected = <int, Set<int>>{};
+    // 默认选中必选规格的第一个
+    for (var i = 0; i < dish.specGroups.length; i++) {
+      final group = dish.specGroups[i];
+      if (group.minSelect > 0) {
+        selected[i] = {0};
+      }
+    }
+    final invalidGroups = <int>{};
 
     return showModalBottomSheet<List<CartItemSpec>>(
       context: context,
@@ -39,46 +47,74 @@ extension _HomePageDialogs on _HomePageState {
                           final group = dish.specGroups[groupIndex];
                           final selectedIndexes = selected[groupIndex] ?? <int>{};
                           final isSingleSelect = group.maxSelect <= 1;
+                          final isRequired = group.minSelect > 0;
+                          final isInvalid = isRequired && selectedIndexes.isEmpty;
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${group.name}${group.minSelect > 0 ? '（至少选${group.minSelect}项）' : ''}',
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                '${group.name}${isRequired ? '（必选）' : ''}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: isInvalid ? Colors.red : null,
+                                ),
                               ),
                               const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: List.generate(group.values.length, (valueIndex) {
-                                  final value = group.values[valueIndex];
-                                  final chosen = selectedIndexes.contains(valueIndex);
-                                  return FilterChip(
-                                    selected: chosen,
-                                    label: Text(
-                                      '${value.name}${value.price > 0 ? ' +积分${value.price.toStringAsFixed(0)}' : ''}',
-                                    ),
-                                    onSelected: (checked) {
-                                      setBottomState(() {
-                                        final current = selected[groupIndex] ?? <int>{};
-                                        if (isSingleSelect) {
-                                          selected[groupIndex] = checked ? {valueIndex} : <int>{};
-                                          return;
-                                        }
-                                        if (checked) {
-                                          if (group.maxSelect <= 0 ||
-                                              current.length < group.maxSelect) {
-                                            current.add(valueIndex);
+                              Container(
+                                decoration: isInvalid
+                                    ? BoxDecoration(
+                                        border: Border.all(color: Colors.red, width: 2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      )
+                                    : null,
+                                padding: isInvalid ? const EdgeInsets.all(4) : null,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: List.generate(group.values.length, (valueIndex) {
+                                    final value = group.values[valueIndex];
+                                    final chosen = selectedIndexes.contains(valueIndex);
+                                    return FilterChip(
+                                      selected: chosen,
+                                      showCheckmark: false,
+                                      selectedColor: const Color(0xFFE85D9A),
+                                      backgroundColor: const Color(0xFFFFF3F9),
+                                      side: BorderSide(
+                                        color: chosen
+                                            ? const Color(0xFFE85D9A)
+                                            : const Color(0xFFFFCFE2),
+                                      ),
+                                      label: Text(
+                                        '${value.name}${value.price > 0 ? ' +积分${value.price.toStringAsFixed(0)}' : ''}',
+                                        style: TextStyle(
+                                          color: chosen ? Colors.white : const Color(0xFF7A2F58),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      onSelected: (checked) {
+
+                                        setBottomState(() {
+                                          invalidGroups.remove(groupIndex);
+                                          final current = selected[groupIndex] ?? <int>{};
+                                          if (isSingleSelect) {
+                                            selected[groupIndex] = checked ? {valueIndex} : <int>{};
+                                            return;
                                           }
-                                        } else {
-                                          current.remove(valueIndex);
-                                        }
-                                        selected[groupIndex] = current;
-                                      });
-                                    },
-                                  );
-                                }),
+                                          if (checked) {
+                                            if (group.maxSelect <= 0 ||
+                                                current.length < group.maxSelect) {
+                                              current.add(valueIndex);
+                                            }
+                                          } else {
+                                            current.remove(valueIndex);
+                                          }
+                                          selected[groupIndex] = current;
+                                        });
+                                      },
+                                    );
+                                  }),
+                                ),
                               ),
                             ],
                           );
@@ -90,15 +126,22 @@ extension _HomePageDialogs on _HomePageState {
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: () {
+                          // 检查必选规格
+                          bool hasInvalid = false;
                           for (var i = 0; i < dish.specGroups.length; i++) {
                             final group = dish.specGroups[i];
                             final count = (selected[i] ?? const <int>{}).length;
-                            if (count < group.minSelect) {
-                              ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                SnackBar(content: Text('${group.name} 至少选择 ${group.minSelect} 项')),
-                              );
-                              return;
+                            if (group.minSelect > 0 && count < group.minSelect) {
+                              hasInvalid = true;
+                              invalidGroups.add(i);
                             }
+                          }
+                          if (hasInvalid) {
+                            setBottomState(() {});
+                            ScaffoldMessenger.of(sheetContext).showSnackBar(
+                              const SnackBar(content: Text('请完成必选规格的选择')),
+                            );
+                            return;
                           }
 
                           final result = <CartItemSpec>[];
