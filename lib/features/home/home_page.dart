@@ -78,6 +78,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    // 初始化当前用户
+    _authService.initCurrentUser();
     _loadMenu();
     _loadOrders();
     _loadRecipeCategories();

@@ -4,10 +4,12 @@
 /// 字段说明：
 /// - id: 用户唯一标识（UUID，来自 Supabase Auth）
 /// - nickname: 昵称
-/// - role: 身份角色（我、女朋友、男朋友）
+/// - role: 身份角色（女朋友、男朋友）
 /// - points: 用户积分余额
 /// - avatarUrl: 头像图片 URL
 /// - email: 绑定的邮箱地址
+/// - partnerId: 绑定对象的用户 ID
+/// - partnerNickname: 绑定对象的昵称
 
 class UserProfile {
   UserProfile({
@@ -17,6 +19,8 @@ class UserProfile {
     required this.points,
     this.avatarUrl,
     this.email,
+    this.partnerId,
+    this.partnerNickname,
   });
 
   final String id;
@@ -25,15 +29,21 @@ class UserProfile {
   final int points;
   final String? avatarUrl;
   final String? email;
+  final String? partnerId;
+  final String? partnerNickname;
+
+  bool get hasPartner => partnerId != null && partnerId!.isNotEmpty;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id'] as String,
       nickname: json['nickname'] as String? ?? '小主',
-      role: json['role'] as String? ?? '我',
+      role: json['role'] as String? ?? '女朋友',
       points: json['points'] as int? ?? 0,
       avatarUrl: json['avatar_url'] as String?,
       email: json['email'] as String?,
+      partnerId: json['partner_id'] as String?,
+      partnerNickname: json['partner_nickname'] as String?,
     );
   }
 }

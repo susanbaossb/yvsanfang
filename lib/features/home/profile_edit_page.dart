@@ -6,6 +6,7 @@
 /// 3. 修改身份（女朋友/男朋友）
 /// 4. 查看邮箱绑定状态
 /// 5. 绑定/解绑邮箱
+/// 6. 绑定/解绑对象
 /// 
 /// 编辑完成后返回上一页，并通知刷新主页数据
 
@@ -34,11 +35,14 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   late TextEditingController _nicknameController;
   late TextEditingController _roleController;
   late TextEditingController _emailController;
+  late TextEditingController _partnerInputController; // 绑定对象输入
 
   Uint8List? _pickedAvatarBytes;
   bool _saving = false;
+  bool _binding = false; // 绑定中
   String? _displayEmail; // 显示的邮箱
   bool _isEmailBound = false; // 是否已绑定
+  String? _bindingError; // 绑定错误提示
 
   @override
   void initState() {
@@ -46,10 +50,14 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _nicknameController = TextEditingController(text: widget.profile.nickname);
     _roleController = TextEditingController(text: widget.profile.role);
     _emailController = TextEditingController();
+    _partnerInputController = TextEditingController();
 
     // 使用 profile 中的邮箱
     _displayEmail = widget.profile.email;
     _isEmailBound = _displayEmail != null && _displayEmail!.isNotEmpty;
+
+    // 初始化 AuthService 用户状态
+    _authService.initCurrentUser();
   }
 
   Future<void> _unbindEmail() async {
@@ -100,11 +108,77 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     }
   }
 
+  /// 绑定对象
+  Future<void> _bindPartner() async {
+    final input = _partnerInputController.text.trim();
+    if (input.isEmpty) {
+      setState(() { _bindingError = '请输入昵称或邮箱'; });
+      return;
+    }
+
+    setState(() { _binding = true; _bindingError = null; });
+    try {
+      await _authService.bindPartner(input);
+      if (!mounted) return;
+      _partnerInputController.clear();
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('绑定成功！')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _bindingError = e.toString().replaceAll('Exception: ', ''); });
+    } finally {
+      if (mounted) setState(() => _binding = false);
+    }
+  }
+
+  /// 解绑对象
+  Future<void> _unbindPartner() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('解绑对象'),
+        content: const Text('确定要解绑当前对象吗？解绑后双方将不再显示对方信息。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确定解绑'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _saving = true);
+    try {
+      await _authService.unbindPartner();
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已解除绑定')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('解绑失败：$e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   void dispose() {
     _nicknameController.dispose();
     _roleController.dispose();
     _emailController.dispose();
+    _partnerInputController.dispose();
     super.dispose();
   }
 
@@ -347,6 +421,121 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       ),
                       keyboardType: TextInputType.emailAddress,
                     ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 绑定对象
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite_outline, color: Color(0xFFE85D9A)),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '绑定对象',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                      ),
+                      const Spacer(),
+                      if (widget.profile.hasPartner)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.pink.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '已绑定',
+                            style: TextStyle(
+                              color: Colors.pink.shade700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '未绑定',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // 已绑定：显示对象昵称 + 解绑按钮
+                  if (widget.profile.hasPartner)
+                    Row(
+                      children: [
+                        const Icon(Icons.person, size: 16, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.profile.partnerNickname ?? '对象',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _saving ? null : _unbindPartner,
+                          icon: const Icon(Icons.heart_broken, size: 16),
+                          label: const Text('解除绑定'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
+                        ),
+                      ],
+                    )
+                  else ...[
+                    // 未绑定：显示输入框 + 绑定按钮
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _partnerInputController,
+                          decoration: InputDecoration(
+                            labelText: '输入昵称或邮箱',
+                            border: const OutlineInputBorder(),
+                            hintText: '对象的昵称或邮箱',
+                            errorText: _bindingError,
+                          ),
+                          onChanged: (_) {
+                            if (_bindingError != null) {
+                              setState(() { _bindingError = null; });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _binding ? null : _bindPartner,
+                            icon: _binding
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.favorite, size: 18),
+                            label: Text(_binding ? '绑定中...' : '绑定对象'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

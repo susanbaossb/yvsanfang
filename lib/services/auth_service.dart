@@ -171,5 +171,87 @@ class AuthService {
     await LocalUserStorage.clearUser();
     _currentUserId = null;
   }
+
+  /// 绑定对象
+  /// 通过昵称或邮箱查找用户并绑定
+  /// 返回被绑定的用户资料
+  Future<UserProfile> bindPartner(String input) async {
+    final id = _currentUserId;
+    if (id == null) {
+      throw Exception('当前用户未登录');
+    }
+
+    // 查找要绑定的用户
+    final partner = await findUserByNameOrEmail(input);
+    if (partner == null) {
+      throw Exception('未找到该用户，请确认昵称或邮箱是否正确');
+    }
+
+    // 不能绑定自己
+    if (partner.id == id) {
+      throw Exception('不能绑定自己');
+    }
+
+    // 不能绑定已有对象的人
+    if (partner.hasPartner) {
+      throw Exception('该用户已绑定其他对象');
+    }
+
+    // 更新当前用户的 partner_id 和 partner_nickname
+    await AppSupabase.client
+        .from('profiles')
+        .update({
+          'partner_id': partner.id,
+          'partner_nickname': partner.nickname,
+        })
+        .eq('id', id);
+
+    // 同时更新对方的资料（双向绑定）
+    await AppSupabase.client
+        .from('profiles')
+        .update({
+          'partner_id': id,
+          'partner_nickname': (await fetchMyProfile())?.nickname ?? '对象',
+        })
+        .eq('id', partner.id);
+
+    // 返回更新后的用户资料
+    final updated = await fetchMyProfile();
+    return updated!;
+  }
+
+  /// 解绑对象
+  Future<void> unbindPartner() async {
+    final id = _currentUserId;
+    if (id == null) {
+      throw Exception('当前用户未登录');
+    }
+
+    // 获取当前用户资料
+    final myProfile = await fetchMyProfile();
+    if (myProfile == null || !myProfile.hasPartner) {
+      throw Exception('当前没有绑定对象');
+    }
+
+    final partnerId = myProfile.partnerId!;
+
+    // 清空当前用户的 partner_id
+    await AppSupabase.client
+        .from('profiles')
+        .update({
+          'partner_id': null,
+          'partner_nickname': null,
+        })
+        .eq('id', id);
+
+    // 同时清空对方的资料
+    await AppSupabase.client
+        .from('profiles')
+        .update({
+          'partner_id': null,
+          'partner_nickname': null,
+        })
+        .eq('id', partnerId);
+  }
 }
 
