@@ -1,5 +1,5 @@
 /// 积分服务
-/// 
+///
 /// 功能：
 /// 1. fetchAllProfiles: 获取所有用户资料列表
 /// 2. fetchMyPoints: 获取当前用户积分
@@ -8,15 +8,14 @@
 /// 5. fetchMonthCheckins: 获取月度签到记录
 /// 6. changePoints: 修改用户积分（增加/减少）
 /// 7. deductPoints: 扣减积分（下单时调用）
-/// 
+///
 /// 积分奖励规则：
-/// - 每月 1-5 日签到：+10 积分
-/// - 每月 6-10 日签到：+20 积分
-/// - 每月 11-30 日签到：+30 积分
+/// - 每月 1-7 日签到：+1 积分
+/// - 每月 8-12 日签到：+2 积分
+/// - 每月 13-30 日签到：+3 积分
 
 import '../core/supabase_client.dart';
 import '../models/user_profile.dart';
-
 
 class PointsService {
   Future<List<UserProfile>> fetchAllProfiles() async {
@@ -25,14 +24,10 @@ class PointsService {
         .select('id,nickname,role,points')
         .order('nickname', ascending: true);
 
-    return rows
-        .map<UserProfile>((row) => UserProfile.fromJson(row))
-        .toList();
-
+    return rows.map<UserProfile>((row) => UserProfile.fromJson(row)).toList();
   }
 
   Future<int> fetchMyPoints(String userId) async {
-
     final row = await AppSupabase.client
         .from('profiles')
         .select('points')
@@ -50,10 +45,10 @@ class PointsService {
 
   int _rewardForDate(DateTime dateUtc) {
     final day = dateUtc.day;
-    if (day <= 5) return 10;
-    if (day <= 10) return 20;
-    // 规则按每月30天计算，超过的天数也按30积分处理
-    return 30;
+    if (day <= 7) return 1;
+    if (day <= 12) return 2;
+    // 规则按每月30天计算，超过的天数也按3积分处理
+    return 3;
   }
 
   Future<bool> isCheckedInToday(String userId) async {
@@ -66,7 +61,6 @@ class PointsService {
         .maybeSingle();
     return row != null;
   }
-
 
   Future<int> dailyCheckIn(String userId) async {
     final nowUtc = DateTime.now().toUtc();
@@ -101,10 +95,12 @@ class PointsService {
     return row['points'] as int? ?? newVal;
   }
 
-
-  Future<Set<String>> fetchMonthCheckins(String userId, int year, int month) async {
-    final start = DateTime.utc(year, month, 1).toIso8601String().substring(0, 10);
-    final end = DateTime.utc(month == 12 ? year + 1 : year, month == 12 ? 1 : month + 1, 1)
+  Future<Set<String>> fetchMonthCheckins(
+      String userId, int year, int month) async {
+    final start =
+        DateTime.utc(year, month, 1).toIso8601String().substring(0, 10);
+    final end = DateTime.utc(
+            month == 12 ? year + 1 : year, month == 12 ? 1 : month + 1, 1)
         .toIso8601String()
         .substring(0, 10);
 
@@ -149,5 +145,3 @@ class PointsService {
     return changePoints(userId: userId, delta: -amount);
   }
 }
-
-

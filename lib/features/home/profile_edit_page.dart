@@ -36,7 +36,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   late TextEditingController _emailController;
 
   Uint8List? _pickedAvatarBytes;
-  String? _newAvatarUrl;
   bool _saving = false;
   String? _displayEmail; // 显示的邮箱
   bool _isEmailBound = false; // 是否已绑定
@@ -48,14 +47,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _roleController = TextEditingController(text: widget.profile.role);
     _emailController = TextEditingController();
 
-    // 优先使用 profile 中的邮箱（实际存储的），否则使用 auth 中的邮箱
-    final profileEmail = widget.profile.email;
-    final authEmail = _authService.currentUserEmail;
-    _displayEmail = profileEmail ?? authEmail;
-    _isEmailBound = profileEmail != null && profileEmail.isNotEmpty;
-    if (!_isEmailBound && authEmail != null && authEmail.isNotEmpty) {
-      _isEmailBound = true;
-    }
+    // 使用 profile 中的邮箱
+    _displayEmail = widget.profile.email;
+    _isEmailBound = _displayEmail != null && _displayEmail!.isNotEmpty;
   }
 
   Future<void> _unbindEmail() async {

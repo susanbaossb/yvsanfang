@@ -1,17 +1,18 @@
 /// 登录页面
 /// 
 /// 功能：
-/// 1. 首次启动时显示登录表单（昵称+身份选择）
-/// 2. 自动进行匿名登录（Supabase Auth）
-/// 3. 若用户已完善资料，直接跳转到首页
-/// 4. 若为新用户，填写资料后保存并跳转
-/// 
-/// 流程：匿名登录 -> 检查 profiles 表 -> 有资料跳转首页 / 无资料显示表单
+/// 1. 检查本地是否已有登录用户 → 有则直接跳转首页
+/// 2. 无则显示登录表单
+/// 3. 输入昵称或邮箱，查找数据库
+/// 4. 存在则登录，不存在则注册新用户
+/// 5. 身份选择：男朋友 / 女朋友
 
 import 'package:flutter/material.dart';
 
 import '../../features/home/home_page.dart';
+import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../services/jpush_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,9 +25,10 @@ class _LoginPageState extends State<LoginPage> {
   final _nicknameController = TextEditingController();
   final _authService = AuthService();
 
-  String _role = '我';
+  String _role = '女朋友';
   bool _loading = true;
   bool _saving = false;
+  String? _roleError; // 身份验证错误提示
 
   @override
   void initState() {
@@ -34,22 +36,27 @@ class _LoginPageState extends State<LoginPage> {
     _bootstrap();
   }
 
+  /// 检查本地是否有已登录用户
   Future<void> _bootstrap() async {
     try {
-      await _authService.ensureSignedIn();
-      final profile = await _authService.fetchMyProfile();
-      if (!mounted) return;
-      if (profile != null) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => HomePage(profile: profile)),
-        );
-        return;
+      // 初始化用户（从本地存储恢复）
+      await _authService.initCurrentUser();
+      
+      // 检查是否有已登录用户
+      if (await _authService.hasLoggedInUser()) {
+        // 有本地用户，尝试从数据库获取最新资料
+        final profile = await _authService.fetchMyProfile();
+        if (!mounted) return;
+        if (profile != null) {
+          JPushService().setAlias(profile.id);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => HomePage(profile: profile)),
+          );
+          return;
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('初始化失败：$e')),
-      );
+      debugPrint('初始化失败：$e');
     }
 
     if (mounted) {
@@ -57,30 +64,56 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// 提交登录/注册
   Future<void> _submit() async {
-    final nickname = _nicknameController.text.trim();
-    if (nickname.isEmpty) {
+    final input = _nicknameController.text.trim();
+    if (input.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入昵称')),
+        const SnackBar(content: Text('请输入昵称或邮箱')),
       );
       return;
     }
 
     setState(() => _saving = true);
     try {
-      final profile = await _authService.saveProfile(
-        nickname: nickname,
-        role: _role,
-      );
+      // 判断输入是邮箱还是昵称
+      final isEmail = input.contains('@');
+      final nickname = isEmail ? input.split('@').first : input;
+      final email = isEmail ? input : null;
+
+      // 先查找数据库中是否有这个用户
+      final existingUser = await _authService.findUserByNameOrEmail(input);
+      
+      UserProfile profile;
+      if (existingUser != null) {
+        // 已存在用户，检查身份是否匹配
+        if (existingUser.role != _role) {
+          setState(() {
+            _roleError = '该账号注册身份为「${existingUser.role}」';
+          });
+          return;
+        }
+        // 身份匹配，登录
+        setState(() { _roleError = null; });
+        profile = await _authService.loginExistingUser(existingUser);
+      } else {
+        // 新用户，注册
+        profile = await _authService.createUser(
+          nickname: nickname,
+          role: _role,
+          email: email,
+        );
+      }
 
       if (!mounted) return;
+      JPushService().setAlias(profile.id);
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomePage(profile: profile)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败：$e')),
+        SnackBar(content: Text('登录失败：$e')),
       );
     } finally {
       if (mounted) {
@@ -152,32 +185,51 @@ class _LoginPageState extends State<LoginPage> {
                       TextField(
                         controller: _nicknameController,
                         decoration: const InputDecoration(
-                          labelText: '昵称',
-                          hintText: '请输入你的昵称',
+                          labelText: '昵称 / 邮箱',
+                          hintText: '请输入昵称或绑定的邮箱',
                         ),
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _role,
-                        decoration: const InputDecoration(
-                          labelText: '身份',
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: '我', child: Text('我')),
-                          DropdownMenuItem(value: '女朋友', child: Text('女朋友')),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            initialValue: _role,
+                            decoration: InputDecoration(
+                              labelText: '身份',
+                              errorText: _roleError,
+                              errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
+                              border: _roleError != null
+                                  ? OutlineInputBorder(borderSide: BorderSide(color: Colors.red.shade300))
+                                  : null,
+                              enabledBorder: _roleError != null
+                                  ? OutlineInputBorder(borderSide: BorderSide(color: Colors.red.shade300))
+                                  : null,
+                              focusedBorder: _roleError != null
+                                  ? OutlineInputBorder(borderSide: BorderSide(color: Colors.red))
+                                  : null,
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: '男朋友', child: Text('男朋友')),
+                              DropdownMenuItem(value: '女朋友', child: Text('女朋友')),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _role = value;
+                                  _roleError = null; // 选择时清除错误
+                                });
+                              }
+                            },
+                          ),
                         ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _role = value);
-                          }
-                        },
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
                           onPressed: _saving ? null : _submit,
-                          child: Text(_saving ? '保存中...' : '进入御膳房'),
+                          child: Text(_saving ? '登录中...' : '进入御膳房'),
                         ),
                       ),
                     ],

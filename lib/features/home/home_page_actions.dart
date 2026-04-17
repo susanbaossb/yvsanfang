@@ -61,7 +61,7 @@ extension _HomePageActions on _HomePageState {
     setState(() => _loadingPoints = true);
     try {
       final points =
-          await _pointsService.fetchMyPoints(_authService.currentUserId);
+          await _pointsService.fetchMyPoints(_authService.currentUserId!);
       if (!mounted) return;
       setState(() => _myPoints = points);
     } catch (_) {
@@ -73,7 +73,7 @@ extension _HomePageActions on _HomePageState {
   Future<void> _checkToday() async {
     try {
       final checked =
-          await _pointsService.isCheckedInToday(_authService.currentUserId);
+          await _pointsService.isCheckedInToday(_authService.currentUserId!);
       if (!mounted) return;
       setState(() => _checkedInToday = checked);
     } catch (_) {}
@@ -89,7 +89,7 @@ extension _HomePageActions on _HomePageState {
     try {
       final now = DateTime.now().toUtc();
       final set = await _pointsService.fetchMonthCheckins(
-        _authService.currentUserId,
+        _authService.currentUserId!,
         now.year,
         now.month,
       );
@@ -103,7 +103,7 @@ extension _HomePageActions on _HomePageState {
     try {
       final nowUtc = DateTime.now().toUtc();
       final reward = _rewardForDay(nowUtc.day);
-      await _pointsService.dailyCheckIn(_authService.currentUserId);
+      await _pointsService.dailyCheckIn(_authService.currentUserId!);
       await _loadPoints();
       await _checkToday();
       await _loadMonthCheckins();
@@ -305,7 +305,7 @@ extension _HomePageActions on _HomePageState {
       final finalNote = note.isEmpty ? null : note;
 
       final orderId = await _orderService.placeOrder(
-        userId: userId,
+        userId: userId!,
         items: cartSnapshot,
         note: finalNote,
       );

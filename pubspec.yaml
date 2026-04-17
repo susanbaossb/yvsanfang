@@ -15,9 +15,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.9.1
   flutter_dotenv: ^5.2.1
+  flutter_secure_storage: ^9.2.2
+  uuid: ^4.5.1
   image_picker: ^1.1.2
   intl: ^0.20.2
   mailer: ^6.1.2
+  # 极光推送
+  jpush_flutter: ^2.1.4
+  # AI 驱动的动态对话式 UI
+  genui: ^0.8.0
 
 
 
@@ -26,6 +32,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
+  # 原生启动画面
+  flutter_native_splash: ^2.4.0
 
 
 flutter:
@@ -40,6 +48,15 @@ flutter_launcher_icons:
   image_path: "image/logo.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "image/logo.png"
+
+# 原生启动画面配置
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: image/banner.png
+  android_12:
+    color: "#FFFFFF"
+    image: image/banner.png
+  ios: false
 
 
 

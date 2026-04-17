@@ -17,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/supabase_client.dart';
+import 'services/jpush_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,13 +47,13 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {
-    debugPrint('.env 未加载，回退到 dart-define / 默认配置');
+    debugPrint('.env 未加载');
   }
 
   // 先显示启动图（无需等待初始化）
   runApp(const DujiaYushanfangApp());
 
-  // 后台初始化 Supabase
+  // 初始化 Supabase
   try {
     await Supabase.initialize(
       url: AppSupabaseConfig.url,
@@ -60,27 +61,16 @@ Future<void> main() async {
     );
     debugPrint('Supabase 初始化完成');
   } catch (error) {
-    // 初始化失败，显示错误（此时 APP 已启动）
     debugPrint('Supabase 初始化失败：$error');
   }
-}
 
-class _StartupErrorApp extends StatelessWidget {
-  const _StartupErrorApp({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(message),
-          ),
-        ),
-      ),
-    );
+  // 初始化极光推送
+  try {
+    await JPushService().init();
+    debugPrint('极光推送 初始化完成');
+  } catch (error) {
+    debugPrint('极光推送 初始化失败：$error');
   }
 }
+
+

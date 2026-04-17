@@ -1,4 +1,4 @@
-package com.example.dujia_yushanfang
+package com.yvsanfang
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -385,7 +385,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       if (pickedImageBytes != null) {
         imageUrl = await _menuService.uploadDishImage(
           bytes: pickedImageBytes!,
-          userId: _authService.currentUserId,
+          userId: _authService.currentUserId!,
         );
       }
 
