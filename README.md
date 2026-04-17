@@ -7,7 +7,8 @@
 - **厨房点餐**：浏览菜品、选择规格、加入购物车并提交订单
 - **订单管理**：按状态筛选订单，支持未完成/已完成/已取消/删除
 - **活动签到**：每日签到、月度签到展示、积分累计
-- **个人中心**：编辑资料、分类管理、菜单管理、设置管理
+- **个人中心**：编辑资料、绑定对象、分类管理、菜单管理、设置管理
+- **绑定对象**：输入昵称或邮箱绑定另一半，双向下单邮件通知
 - **设置管理**：查看注册用户信息，对指定用户加积分/减积分
 
 ## UI 风格（可爱甜美）
@@ -33,7 +34,8 @@ lib/
 │  ├─ recipe.dart                   # 菜谱模型
 │  └─ recipe_category.dart          # 菜谱分类模型
 ├─ services/                        # 业务服务层（Supabase 数据库操作）
-│  ├─ auth_service.dart             # 认证服务（匿名登录、资料管理、头像上传）
+│  ├─ auth_service.dart             # 认证服务（资料管理、头像上传、绑定对象）
+│  ├─ local_user_storage.dart       # 本地存储服务（用户会话持久化）
 │  ├─ menu_service.dart             # 菜单服务（菜品 CRUD、上下架）
 │  ├─ order_service.dart            # 订单服务（下单、查询、更新状态）
 │  ├─ order_email_service.dart      # 邮件通知服务（QQ SMTP 下单邮件）
@@ -69,12 +71,14 @@ lib/
 ### profiles（用户资料表）
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | uuid | 主键（关联 Auth 用户） |
+| id | uuid | 主键（本地 UUID） |
 | nickname | text | 昵称 |
 | role | text | 身份角色 |
 | points | integer | 积分余额 |
 | avatar_url | text | 头像 URL |
 | email | text | 绑定邮箱 |
+| partner_id | text | 绑定对象 ID |
+| partner_nickname | text | 绑定对象昵称 |
 
 ### dishes（菜品表）
 | 字段 | 类型 | 说明 |
@@ -140,14 +144,15 @@ lib/
 在根目录 `.env` 中配置下单通知邮箱：
 
 ```env
-QQ_EMAIL_ACCOUNT=
-QQ_EMAIL_AUTH_CODE=
+QQ_EMAIL_ACCOUNT=你的QQ邮箱
+QQ_EMAIL_AUTH_CODE=邮箱授权码
 QQ_SMTP_HOST=smtp.qq.com
 QQ_SMTP_PORT=465
 ```
 
 说明：
 - `QQ_EMAIL_ACCOUNT` / `QQ_EMAIL_AUTH_CODE`：用于发送邮件，需在 QQ 邮箱开启 SMTP 并获取授权码
+- **发送规则**：下单后优先发送给**绑定对象**的邮箱；如果没有绑定对象或绑定对象未设置邮箱，则不发送邮件
 
 ## 运行项目
 
@@ -182,8 +187,26 @@ flutter run --release
 ### Supabase 初始化
 在 `main.dart` 中，Supabase 初始化在启动图显示后后台执行，不阻塞 UI 渲染。
 
+### 本地登录系统
+项目使用**本地 UUID** 作为用户标识，而非 Supabase Auth：
+- 用户 ID 由本地 `uuid` 包生成，通过 `local_user_storage.dart` 的 `flutter_secure_storage` 持久化存储
+- 登录即注册，首次输入昵称即创建本地账户
+- RLS（行级安全策略）在相关表上已禁用，以支持本地 UUID 登录模式
+- 进入主页前需调用 `AuthService.initCurrentUser()` 从本地存储恢复用户状态
+
 ## 版本信息
 
 - **应用名称**：御膳房
-- **当前版本**：1.0.0
+- **当前版本**：1.0.1
 - **开发团队**：susanbao
+
+## 更新日志
+
+### v1.0.1 (2026-04-17)
+- 新增：绑定对象功能（双向绑定，下单邮件通知给绑定对象）
+- 新增：`profiles` 表 `partner_id` 和 `partner_nickname` 字段
+- 优化：下单邮件优先发送给绑定对象邮箱
+- 优化：邮件发送失败不影响下单流程
+- 修复：`AuthService` 初始化问题（需在页面中调用 `initCurrentUser()`）
+- 修复：本地 UUID 登录与 Supabase RLS 兼容性问题
+- 移除：极光推送（已停用）
