@@ -1,5 +1,5 @@
 /// 应用根组件
-/// 
+///
 /// 功能：
 /// 1. 定义应用主题（Material 3，粉色系配色）
 /// 2. 配置全局组件样式（卡片、按钮、输入框、导航栏等）
@@ -27,7 +27,7 @@ class DujiaYushanfangApp extends StatelessWidget {
     );
 
     return MaterialApp(
-      title: '独家御膳房',
+      title: '御膳房',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -54,7 +54,8 @@ class DujiaYushanfangApp extends StatelessWidget {
           ),
         ),
         chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           side: BorderSide(color: const Color(0xFFFFD3E6)),
           selectedColor: const Color(0xFFFFE5F1),
           backgroundColor: Colors.white,
@@ -68,23 +69,28 @@ class DujiaYushanfangApp extends StatelessWidget {
             minimumSize: const Size(0, 48),
             elevation: 0,
             shadowColor: const Color(0xFFFFA5CA).withValues(alpha: 0.3),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            textStyle:
+                const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: colorScheme.primary,
-            side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.35)),
+            side:
+                BorderSide(color: colorScheme.primary.withValues(alpha: 0.35)),
             minimumSize: const Size(90, 42),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             textStyle: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: Color(0xFFFFD5E7)),
@@ -105,7 +111,9 @@ class DujiaYushanfangApp extends StatelessWidget {
             return TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? const Color(0xFF8D2E5E) : const Color(0xFF6A5B65),
+              color: isSelected
+                  ? const Color(0xFF8D2E5E)
+                  : const Color(0xFF6A5B65),
             );
           }),
           indicatorColor: const Color(0xFFFFE5F1),

@@ -140,7 +140,6 @@ lib/
 在根目录 `.env` 中配置下单通知邮箱：
 
 ```env
-ORDER_NOTIFY_EMAIL=1951345484@qq.com
 QQ_EMAIL_ACCOUNT=
 QQ_EMAIL_AUTH_CODE=
 QQ_SMTP_HOST=smtp.qq.com
@@ -148,7 +147,6 @@ QQ_SMTP_PORT=465
 ```
 
 说明：
-- `ORDER_NOTIFY_EMAIL`：接收订单通知的邮箱（可改成任意地址）
 - `QQ_EMAIL_ACCOUNT` / `QQ_EMAIL_AUTH_CODE`：用于发送邮件，需在 QQ 邮箱开启 SMTP 并获取授权码
 
 ## 运行项目

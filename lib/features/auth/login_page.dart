@@ -1,5 +1,5 @@
 /// 登录页面
-/// 
+///
 /// 功能：
 /// 1. 检查本地是否已有登录用户 → 有则直接跳转首页
 /// 2. 无则显示登录表单
@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 import '../../features/home/home_page.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
-import '../../services/jpush_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,14 +40,13 @@ class _LoginPageState extends State<LoginPage> {
     try {
       // 初始化用户（从本地存储恢复）
       await _authService.initCurrentUser();
-      
+
       // 检查是否有已登录用户
       if (await _authService.hasLoggedInUser()) {
         // 有本地用户，尝试从数据库获取最新资料
         final profile = await _authService.fetchMyProfile();
         if (!mounted) return;
         if (profile != null) {
-          JPushService().setAlias(profile.id);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => HomePage(profile: profile)),
           );
@@ -83,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
 
       // 先查找数据库中是否有这个用户
       final existingUser = await _authService.findUserByNameOrEmail(input);
-      
+
       UserProfile profile;
       if (existingUser != null) {
         // 已存在用户，检查身份是否匹配
@@ -94,7 +92,9 @@ class _LoginPageState extends State<LoginPage> {
           return;
         }
         // 身份匹配，登录
-        setState(() { _roleError = null; });
+        setState(() {
+          _roleError = null;
+        });
         profile = await _authService.loginExistingUser(existingUser);
       } else {
         // 新用户，注册
@@ -106,7 +106,6 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (!mounted) return;
-      JPushService().setAlias(profile.id);
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomePage(profile: profile)),
       );
@@ -165,7 +164,8 @@ class _LoginPageState extends State<LoginPage> {
                           color: const Color(0xFFFFE7F2),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Icon(Icons.cake_outlined, color: Color(0xFFB23D78), size: 34),
+                        child: const Icon(Icons.cake_outlined,
+                            color: Color(0xFFB23D78), size: 34),
                       ),
                       const SizedBox(height: 14),
                       Text(
@@ -198,20 +198,28 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               labelText: '身份',
                               errorText: _roleError,
-                              errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
+                              errorStyle: const TextStyle(
+                                  color: Colors.red, fontSize: 12),
                               border: _roleError != null
-                                  ? OutlineInputBorder(borderSide: BorderSide(color: Colors.red.shade300))
+                                  ? OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.red.shade300))
                                   : null,
                               enabledBorder: _roleError != null
-                                  ? OutlineInputBorder(borderSide: BorderSide(color: Colors.red.shade300))
+                                  ? OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.red.shade300))
                                   : null,
                               focusedBorder: _roleError != null
-                                  ? OutlineInputBorder(borderSide: BorderSide(color: Colors.red))
+                                  ? OutlineInputBorder(
+                                      borderSide: BorderSide(color: Colors.red))
                                   : null,
                             ),
                             items: const [
-                              DropdownMenuItem(value: '男朋友', child: Text('男朋友')),
-                              DropdownMenuItem(value: '女朋友', child: Text('女朋友')),
+                              DropdownMenuItem(
+                                  value: '男朋友', child: Text('男朋友')),
+                              DropdownMenuItem(
+                                  value: '女朋友', child: Text('女朋友')),
                             ],
                             onChanged: (value) {
                               if (value != null) {

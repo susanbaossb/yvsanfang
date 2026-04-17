@@ -10,10 +10,6 @@ allprojects {
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
-        // 极光厂商通道仓库
-        maven { url = uri("https://sdk.jiguang.cn/repository/jpackage/") }
-        // 华为
-        maven { url = uri("https://developer.huawei.com/repo/") }
     }
 }
 

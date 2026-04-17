@@ -20,8 +20,6 @@ dependencies:
   image_picker: ^1.1.2
   intl: ^0.20.2
   mailer: ^6.1.2
-  # 极光推送
-  jpush_flutter: ^2.1.4
   # AI 驱动的动态对话式 UI
   genui: ^0.8.0
 
