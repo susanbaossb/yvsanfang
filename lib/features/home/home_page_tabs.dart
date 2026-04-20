@@ -130,27 +130,37 @@ extension _HomePageTabs on _HomePageState {
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 58,
-                          height: 58,
-                          child:
-                              dish.imageUrl != null && dish.imageUrl!.isNotEmpty
-                                  ? Image.network(
-                                      dish.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DishDetailPage(dish: dish),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 58,
+                            height: 58,
+                            child:
+                                dish.imageUrl != null && dish.imageUrl!.isNotEmpty
+                                    ? Image.network(
+                                        dish.imageUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          color: const Color(0xFFFFF0F7),
+                                          child: const Icon(Icons.ramen_dining,
+                                              color: Color(0xFFE85D9A)),
+                                        ),
+                                      )
+                                    : Container(
                                         color: const Color(0xFFFFF0F7),
                                         child: const Icon(Icons.ramen_dining,
                                             color: Color(0xFFE85D9A)),
                                       ),
-                                    )
-                                  : Container(
-                                      color: const Color(0xFFFFF0F7),
-                                      child: const Icon(Icons.ramen_dining,
-                                          color: Color(0xFFE85D9A)),
-                                    ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),

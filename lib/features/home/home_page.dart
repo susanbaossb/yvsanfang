@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/feature_flags.dart';
 import '../../models/dish.dart';
+import '../menu/dish_detail_page.dart';
 import '../../models/order_summary.dart';
 import '../../models/recipe_category.dart';
 import '../../models/user_profile.dart';

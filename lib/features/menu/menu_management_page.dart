@@ -1,5 +1,5 @@
 /// 菜单管理页面
-/// 
+///
 /// 功能：
 /// 1. 查看所有菜品列表（支持分类筛选）
 /// 2. 新增菜品（名称、描述、分类、价格、图片、评分）
@@ -7,7 +7,7 @@
 /// 4. 菜品上下架管理
 /// 5. 删除菜品（软删除）
 /// 6. 支持多规格配置（口味、温度、配料等）
-/// 
+///
 /// 入口：在"我的"页面点击"菜单管理"快捷入口
 
 import 'dart:typed_data';
@@ -21,9 +21,12 @@ import '../../services/auth_service.dart';
 import '../../services/menu_service.dart';
 import '../../services/recipe_service.dart';
 
+import 'dish_detail_page.dart';
 
 class MenuManagementPage extends StatefulWidget {
-  const MenuManagementPage({super.key});
+  final Dish? editDish;
+
+  const MenuManagementPage({super.key, this.editDish});
 
   @override
   State<MenuManagementPage> createState() => _MenuManagementPageState();
@@ -45,7 +48,11 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    _loadInitialData().then((_) {
+      if (widget.editDish != null && mounted) {
+        _showDishEditor(dish: widget.editDish);
+      }
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -54,7 +61,6 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       _loadCategories(),
     ]);
   }
-
 
   Future<void> _loadDishes() async {
     setState(() => _loading = true);
@@ -82,7 +88,6 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
     } catch (_) {}
   }
 
-
   List<Dish> get _filteredDishes {
     switch (_filter) {
       case '上架':
@@ -95,28 +100,28 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
   }
 
   Future<void> _showDishEditor({Dish? dish}) async {
-    String name = dish?.name ?? '';
-    String description = dish?.description ?? '';
-    String category = dish?.category ?? '';
-    int rating = dish?.rating ?? 5;
-    String priceInput = dish != null ? dish.price.toStringAsFixed(2) : '';
-    bool available = dish?.available ?? true;
-    bool enableMultiSpec = dish?.enableMultiSpec ?? false;
+    // 使用可变容器存储表单值
+    final formData = _DishFormData(
+      name: dish?.name ?? '',
+      description: dish?.description ?? '',
+      category: dish?.category ?? '',
+      rating: dish?.rating ?? 5,
+      priceInput: dish != null ? dish.price.toStringAsFixed(2) : '',
+      available: dish?.available ?? true,
+      enableMultiSpec: dish?.enableMultiSpec ?? false,
+      specGroups: (dish?.specGroups ?? []).map(_SpecGroupDraft.fromSpecGroup).toList(),
+    );
 
-    final List<_SpecGroupDraft> specGroups = (dish?.specGroups ?? [])
-        .map(_SpecGroupDraft.fromSpecGroup)
-        .toList();
     final categoryOptions = _categories
         .map((item) => item.name)
         .where((name) => name.trim().isNotEmpty)
         .toSet()
         .toList();
-    if (category.isNotEmpty && !categoryOptions.contains(category)) {
-      categoryOptions.add(category);
+    if (formData.category.isNotEmpty && !categoryOptions.contains(formData.category)) {
+      categoryOptions.add(formData.category);
     }
 
     String? currentImageUrl = dish?.imageUrl;
-
     Uint8List? pickedImageBytes;
 
     final saved = await showModalBottomSheet<bool>(
@@ -138,7 +143,8 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                 children: [
                   Text(
                     dish == null ? '新增菜品' : '编辑菜品',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
@@ -163,14 +169,16 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                       child: pickedImageBytes != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.memory(pickedImageBytes!, fit: BoxFit.cover),
+                              child: Image.memory(pickedImageBytes!,
+                                  fit: BoxFit.cover),
                             )
-                          : (currentImageUrl != null && currentImageUrl.isNotEmpty)
+                          : (currentImageUrl != null &&
+                                  currentImageUrl.isNotEmpty)
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(currentImageUrl, fit: BoxFit.cover),
+                                  child: Image.network(currentImageUrl,
+                                      fit: BoxFit.cover),
                                 )
-
                               : const Center(
                                   child: Text('上传菜品图片'),
                                 ),
@@ -178,28 +186,29 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
-                    initialValue: name,
+                    initialValue: formData.name,
                     decoration: const InputDecoration(
                       labelText: '菜的名称',
                       border: OutlineInputBorder(),
                     ),
-                    onChanged: (value) => name = value,
+                    onChanged: (value) => formData.name = value,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
-                    initialValue: description,
+                    initialValue: formData.description,
                     maxLines: 2,
                     decoration: const InputDecoration(
                       labelText: '菜的描述',
                       border: OutlineInputBorder(),
                     ),
-                    onChanged: (value) => description = value,
+                    onChanged: (value) => formData.description = value,
                   ),
                   const SizedBox(height: 12),
                   if (categoryOptions.isNotEmpty)
                     DropdownButtonFormField<String>(
-                      initialValue: category.isNotEmpty ? category : null,
-
+                      value: categoryOptions.contains(formData.category) 
+                          ? formData.category 
+                          : categoryOptions.first,
                       decoration: const InputDecoration(
                         labelText: '菜的分类',
                         border: OutlineInputBorder(),
@@ -212,27 +221,26 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                             ),
                           )
                           .toList(),
-
                       onChanged: (value) {
                         if (value == null) return;
-                        setBottomState(() => category = value);
+                        setBottomState(() => formData.category = value);
                       },
                     )
                   else
                     TextFormField(
-                      initialValue: category,
+                      initialValue: formData.category,
                       decoration: const InputDecoration(
                         labelText: '菜的分类',
                         border: OutlineInputBorder(),
                       ),
-                      onChanged: (value) => category = value,
+                      onChanged: (value) => formData.category = value,
                     ),
                   const SizedBox(height: 8),
                   if (categoryOptions.isEmpty)
-
                     Text(
                       '暂无分类，请先在首页"我的-分类管理"中添加分类',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   const SizedBox(height: 12),
                   Row(
@@ -241,41 +249,44 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                       const SizedBox(width: 6),
                       ...List.generate(5, (index) {
                         final star = index + 1;
-                        final active = star <= rating;
+                        final active = star <= formData.rating;
                         return IconButton(
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          onPressed: () => setBottomState(() => rating = star),
+                          constraints:
+                              const BoxConstraints(minWidth: 32, minHeight: 32),
+                          onPressed: () => setBottomState(() => formData.rating = star),
                           icon: Icon(
                             active ? Icons.star : Icons.star_border,
                             color: Colors.amber,
                           ),
                         );
                       }),
-                      Text('($rating)', style: TextStyle(color: Colors.grey.shade700)),
+                      Text('(${formData.rating})',
+                          style: TextStyle(color: Colors.grey.shade700)),
                     ],
                   ),
-
                   const SizedBox(height: 12),
                   TextFormField(
-                    initialValue: priceInput,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    initialValue: formData.priceInput,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       labelText: '设置价格',
                       border: OutlineInputBorder(),
                       prefixText: '¥',
                     ),
-                    onChanged: (value) => priceInput = value,
+                    onChanged: (value) => formData.priceInput = value,
                   ),
                   const SizedBox(height: 8),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('是否开启多规格'),
-                    value: enableMultiSpec,
-                    onChanged: (value) => setBottomState(() => enableMultiSpec = value),
+                    value: formData.enableMultiSpec,
+                    onChanged: (value) =>
+                        setBottomState(() => formData.enableMultiSpec = value),
                   ),
-                  if (enableMultiSpec) ...[
+                  if (formData.enableMultiSpec) ...[
                     const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
@@ -289,12 +300,15 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                         children: [
                           Row(
                             children: [
-                              const Text('多规格', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                              const Text('多规格',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600)),
                               const Spacer(),
                               OutlinedButton(
                                 onPressed: () {
                                   setBottomState(() {
-                                    specGroups.add(_SpecGroupDraft.empty());
+                                    formData.specGroups.add(_SpecGroupDraft.empty());
                                   });
                                 },
                                 child: const Text('添加规格'),
@@ -302,21 +316,21 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                             ],
                           ),
                           const SizedBox(height: 6),
-                          if (specGroups.isEmpty)
+                          if (formData.specGroups.isEmpty)
                             Text(
                               '可先添加规格组（例如：口味）',
                               style: TextStyle(color: Colors.grey.shade600),
                             )
                           else
-                            ...List.generate(specGroups.length, (groupIndex) {
-                              final group = specGroups[groupIndex];
+                            ...List.generate(formData.specGroups.length, (groupIndex) {
+                              final group = formData.specGroups[groupIndex];
                               return _buildSpecGroupCard(
                                 group: group,
                                 groupIndex: groupIndex,
                                 onChanged: () => setBottomState(() {}),
                                 onRemove: () {
                                   setBottomState(() {
-                                    specGroups.removeAt(groupIndex);
+                                    formData.specGroups.removeAt(groupIndex);
                                   });
                                 },
                               );
@@ -329,8 +343,9 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('上架状态'),
-                    value: available,
-                    onChanged: (value) => setBottomState(() => available = value),
+                    value: formData.available,
+                    onChanged: (value) =>
+                        setBottomState(() => formData.available = value),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -350,10 +365,10 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
 
     if (saved != true) return;
 
-    final parsedPrice = double.tryParse(priceInput.trim());
-    final safeName = name.trim();
-    final safeDesc = description.trim();
-    final safeCategory = category.trim();
+    final parsedPrice = double.tryParse(formData.priceInput.trim());
+    final safeName = formData.name.trim();
+    final safeDesc = formData.description.trim();
+    final safeCategory = formData.category.trim();
 
     if (safeName.isEmpty || safeDesc.isEmpty || safeCategory.isEmpty) {
       if (!mounted) return;
@@ -371,8 +386,8 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       return;
     }
 
-    final normalizedSpecGroups = _normalizeSpecGroups(specGroups);
-    if (enableMultiSpec && normalizedSpecGroups.isEmpty) {
+    final normalizedSpecGroups = _normalizeSpecGroups(formData.specGroups);
+    if (formData.enableMultiSpec && normalizedSpecGroups.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('已开启多规格，请至少添加一个有效规格组')),
@@ -395,12 +410,11 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
           description: safeDesc,
           category: safeCategory,
           price: parsedPrice,
-          rating: rating,
-          enableMultiSpec: enableMultiSpec,
-
+          rating: formData.rating,
+          enableMultiSpec: formData.enableMultiSpec,
           specGroups: normalizedSpecGroups,
           imageUrl: imageUrl,
-          available: available,
+          available: formData.available,
         );
       } else {
         await _menuService.updateDish(
@@ -409,11 +423,11 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
           description: safeDesc,
           category: safeCategory,
           price: parsedPrice,
-          rating: rating,
-          enableMultiSpec: enableMultiSpec,
+          rating: formData.rating,
+          enableMultiSpec: formData.enableMultiSpec,
           specGroups: normalizedSpecGroups,
           imageUrl: imageUrl,
-          available: available,
+          available: formData.available,
         );
       }
 
@@ -449,8 +463,10 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
           }
 
           final minSelect = int.tryParse(group.minSelectText.trim()) ?? 0;
-          final maxSelectInput = int.tryParse(group.maxSelectText.trim()) ?? values.length;
-          final maxSelect = maxSelectInput <= 0 ? values.length : maxSelectInput;
+          final maxSelectInput =
+              int.tryParse(group.maxSelectText.trim()) ?? values.length;
+          final maxSelect =
+              maxSelectInput <= 0 ? values.length : maxSelectInput;
 
           return DishSpecGroup(
             name: safeGroupName,
@@ -518,7 +534,8 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                     width: 110,
                     child: TextFormField(
                       initialValue: value.priceText,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: '规格单价',
                         border: OutlineInputBorder(),
@@ -532,7 +549,8 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                       group.values.removeAt(valueIndex);
                       onChanged();
                     },
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.redAccent),
                   ),
                 ],
               ),
@@ -642,7 +660,6 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final dishes = _filteredDishes;
@@ -655,7 +672,6 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
             onPressed: _loadInitialData,
             icon: const Icon(Icons.refresh),
           ),
-
         ],
       ),
       body: _loading
@@ -688,39 +704,66 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 10),
                                 child: ListTile(
-                                  leading: dish.imageUrl != null && dish.imageUrl!.isNotEmpty
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.network(
-                                            dish.imageUrl!,
-                                            width: 52,
-                                            height: 52,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        )
-                                      : const CircleAvatar(child: Icon(Icons.fastfood_outlined)),
+                                  leading: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              DishDetailPage(dish: dish),
+                                        ),
+                                      );
+                                    },
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: dish.imageUrl != null &&
+                                              dish.imageUrl!.isNotEmpty
+                                          ? Image.network(
+                                              dish.imageUrl!,
+                                              width: 52,
+                                              height: 52,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Container(
+                                              width: 52,
+                                              height: 52,
+                                              color: Colors.grey[200],
+                                              child: const Icon(
+                                                  Icons.fastfood_outlined),
+                                            ),
+                                    ),
+                                  ),
                                   title: Text(dish.name),
-                                  subtitle: Text('${dish.category} · ¥${dish.price.toStringAsFixed(2)}'),
+                                  subtitle: Text(
+                                      '${dish.category} · ¥${dish.price.toStringAsFixed(2)}'),
                                   isThreeLine: false,
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         visualDensity: VisualDensity.compact,
-                                        onPressed: updating ? null : () => _showDishEditor(dish: dish),
-                                        icon: const Icon(Icons.edit_outlined, size: 20),
+                                        onPressed: updating
+                                            ? null
+                                            : () => _showDishEditor(dish: dish),
+                                        icon: const Icon(Icons.edit_outlined,
+                                            size: 20),
                                       ),
                                       IconButton(
                                         visualDensity: VisualDensity.compact,
-                                        onPressed: updating ? null : () => _deleteDish(dish),
-                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                        onPressed: updating
+                                            ? null
+                                            : () => _deleteDish(dish),
+                                        icon: const Icon(Icons.delete_outline,
+                                            color: Colors.redAccent, size: 20),
                                       ),
                                       Switch(
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
                                         value: dish.available,
                                         onChanged: updating
                                             ? null
-                                            : (value) => _toggleAvailability(dish, value),
+                                            : (value) => _toggleAvailability(
+                                                dish, value),
                                       ),
                                     ],
                                   ),
@@ -797,6 +840,29 @@ class _SpecGroupDraft {
           .toList(),
     );
   }
+}
+
+/// 表单数据容器，使用类而非基本类型以支持闭包引用
+class _DishFormData {
+  _DishFormData({
+    required this.name,
+    required this.description,
+    required this.category,
+    required this.rating,
+    required this.priceInput,
+    required this.available,
+    required this.enableMultiSpec,
+    required this.specGroups,
+  });
+
+  String name;
+  String description;
+  String category;
+  int rating;
+  String priceInput;
+  bool available;
+  bool enableMultiSpec;
+  List<_SpecGroupDraft> specGroups;
 }
 
 class _SpecValueDraft {
