@@ -30,8 +30,6 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
-  # 原生启动画面
-  flutter_native_splash: ^2.4.0
 
 
 flutter:
@@ -46,15 +44,6 @@ flutter_launcher_icons:
   image_path: "image/logo.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "image/logo.png"
-
-# 原生启动画面配置
-flutter_native_splash:
-  color: "#FFFFFF"
-  image: image/banner.png
-  android_12:
-    color: "#FFFFFF"
-    image: image/banner.png
-  ios: false
 
 
 

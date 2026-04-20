@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/supabase_client.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../utils/snackbar_helper.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key, required this.profile});
@@ -95,14 +96,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         _isEmailBound = false;
         _emailController.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('邮箱已解绑')),
-      );
+      SnackBarHelper.success(context, '邮箱已解绑');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('解绑失败：$e')),
-      );
+      SnackBarHelper.error(context, '解绑失败');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -122,9 +119,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       if (!mounted) return;
       _partnerInputController.clear();
       setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('绑定成功！')),
-      );
+      SnackBarHelper.success(context, '绑定成功');
     } catch (e) {
       if (!mounted) return;
       setState(() { _bindingError = e.toString().replaceAll('Exception: ', ''); });
@@ -160,14 +155,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       await _authService.unbindPartner();
       if (!mounted) return;
       setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已解除绑定')),
-      );
+      SnackBarHelper.success(context, '已解除绑定');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('解绑失败：$e')),
-      );
+      SnackBarHelper.error(context, '解绑失败');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -201,9 +192,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final email = _emailController.text.trim();
 
     if (nickname.isEmpty || role.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('昵称和身份不能为空')),
-      );
+      SnackBarHelper.warning(context, '昵称和身份不能为空');
       return;
     }
 
@@ -229,14 +218,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存成功')),
-      );
+      SnackBarHelper.success(context, '保存成功');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败：$e')),
-      );
+      SnackBarHelper.error(context, '保存失败');
     } finally {
       if (mounted) {
         setState(() => _saving = false);

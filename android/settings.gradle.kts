@@ -24,24 +24,3 @@ plugins {
 }
 
 include(":app")
-
-// 解决 jpush_flutter 等旧插件缺少 namespace 的问题
-gradle.beforeProject {
-    afterEvaluate {
-        if (project.hasProperty("android")) {
-            val androidExtension = project.extensions.findByName("android")
-            if (androidExtension is com.android.build.gradle.LibraryExtension) {
-                if (androidExtension.namespace.isNullOrEmpty()) {
-                    val manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-                    if (manifestFile.exists()) {
-                        val content = manifestFile.readText()
-                        val regex = """package\s*=\s*["']([^"']+)["']""".toRegex()
-                        regex.find(content)?.groupValues?.getOrNull(1)?.let { pkg ->
-                            androidExtension.namespace = pkg
-                        }
-                    }
-                }
-            }
-        }
-    }
-}

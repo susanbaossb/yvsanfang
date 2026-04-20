@@ -20,6 +20,7 @@ import '../../models/recipe_category.dart';
 import '../../services/auth_service.dart';
 import '../../services/menu_service.dart';
 import '../../services/recipe_service.dart';
+import '../../utils/snackbar_helper.dart';
 
 import 'dish_detail_page.dart';
 
@@ -70,9 +71,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       setState(() => _dishes = dishes);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('菜单加载失败：$e')),
-      );
+      SnackBarHelper.error(context, '菜单加载失败');
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -372,26 +371,20 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
 
     if (safeName.isEmpty || safeDesc.isEmpty || safeCategory.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请完整填写名称、描述、分类')),
-      );
+      SnackBarHelper.warning(context, '请完整填写名称、描述、分类');
       return;
     }
 
     if (parsedPrice == null || parsedPrice < 0) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效价格')),
-      );
+      SnackBarHelper.warning(context, '请输入有效价格');
       return;
     }
 
     final normalizedSpecGroups = _normalizeSpecGroups(formData.specGroups);
     if (formData.enableMultiSpec && normalizedSpecGroups.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已开启多规格，请至少添加一个有效规格组')),
-      );
+      SnackBarHelper.warning(context, '已开启多规格，请至少添加一个有效规格组');
       return;
     }
 
@@ -433,14 +426,10 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
 
       await _loadDishes();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(dish == null ? '菜品新增成功' : '菜品更新成功')),
-      );
+      SnackBarHelper.success(context, dish == null ? '菜品新增成功' : '菜品更新成功');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败：$e')),
-      );
+      SnackBarHelper.error(context, '保存失败');
     }
   }
 
@@ -609,9 +598,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       await _loadDishes();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('状态更新失败：$e')),
-      );
+      SnackBarHelper.error(context, '状态更新失败');
     } finally {
       if (mounted) {
         setState(() => _updatingIds.remove(dish.id));
@@ -645,14 +632,10 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
       await _menuService.deleteDish(dishId: dish.id);
       await _loadDishes();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('菜品已删除')),
-      );
+      SnackBarHelper.success(context, '菜品已删除');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('删除失败：$e')),
-      );
+      SnackBarHelper.error(context, '删除失败');
     } finally {
       if (mounted) {
         setState(() => _updatingIds.remove(dish.id));

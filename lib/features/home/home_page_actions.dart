@@ -13,6 +13,39 @@
 part of 'home_page.dart';
 
 extension _HomePageActions on _HomePageState {
+  /// 显示美化后的 SnackBar
+  void _showSnackBar(String message, {bool isError = false, bool isSuccess = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isSuccess
+                  ? Icons.check_circle_outline
+                  : (isError ? Icons.error_outline : Icons.info_outline),
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isSuccess
+            ? const Color(0xFF4CAF50)
+            : (isError ? const Color(0xFFE85D9A) : const Color(0xFF666666)),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _loadMenu() async {
     setState(() => _loadingMenu = true);
     try {
@@ -21,9 +54,7 @@ extension _HomePageActions on _HomePageState {
       setState(() => _dishes = dishes);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('菜单加载失败：$e')),
-      );
+      _showSnackBar('菜单加载失败', isError: true);
     } finally {
       if (mounted) {
         setState(() => _loadingMenu = false);
@@ -39,9 +70,7 @@ extension _HomePageActions on _HomePageState {
       setState(() => _orders = orders);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('订单加载失败：$e')),
-      );
+      _showSnackBar('订单加载失败', isError: true);
     } finally {
       if (mounted) {
         setState(() => _loadingOrders = false);
@@ -108,12 +137,10 @@ extension _HomePageActions on _HomePageState {
       await _checkToday();
       await _loadMonthCheckins();
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('签到成功，积分+$reward')));
+      _showSnackBar('签到成功，积分+$reward', isSuccess: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('签到失败：$e')));
+      _showSnackBar('签到失败', isError: true);
     } finally {
       if (mounted) setState(() => _checkingIn = false);
     }
@@ -332,18 +359,14 @@ extension _HomePageActions on _HomePageState {
       await _loadOrders();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            mailError == null ? '下单成功，邮件已发送！' : '下单成功，但邮件发送失败：$mailError',
-          ),
-        ),
+      _showSnackBar(
+        mailError == null ? '下单成功，邮件已发送！' : '下单成功，但邮件发送失败',
+        isSuccess: mailError == null,
+        isError: mailError != null,
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('下单失败：$e')),
-      );
+      _showSnackBar('下单失败', isError: true);
     } finally {
       if (mounted) {
         setState(() => _placingOrder = false);
@@ -357,14 +380,10 @@ extension _HomePageActions on _HomePageState {
       await _orderService.updateOrderStatus(orderId: order.id, status: status);
       await _loadOrders();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('订单已更新为：${_statusText(status)}')),
-      );
+      _showSnackBar('订单已更新为：${_statusText(status)}', isSuccess: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('订单更新失败：$e')),
-      );
+      _showSnackBar('订单更新失败', isError: true);
     } finally {
       if (mounted) {
         setState(() => _updatingOrder = false);

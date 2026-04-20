@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
 import '../../services/points_service.dart';
+import '../../utils/snackbar_helper.dart';
 
 class SettingsManagementPage extends StatefulWidget {
   const SettingsManagementPage({super.key});
@@ -41,9 +42,7 @@ class _SettingsManagementPageState extends State<SettingsManagementPage> {
       setState(() => _profiles = data);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载用户失败：$e')),
-      );
+      SnackBarHelper.error(context, '加载用户失败');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -103,14 +102,10 @@ class _SettingsManagementPageState extends State<SettingsManagementPage> {
                 : p)
             .toList();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('操作成功，当前积分：$newPoints')),
-      );
+      SnackBarHelper.success(context, '操作成功，当前积分：$newPoints');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('操作失败：$e')),
-      );
+      SnackBarHelper.error(context, '操作失败');
     } finally {
       if (mounted) setState(() => _updating = false);
     }

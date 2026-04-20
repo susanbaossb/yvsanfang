@@ -8,6 +8,43 @@
 
 part of 'home_page.dart';
 
+/// 显示美化后的 SnackBar
+void _showSnackBar(BuildContext context, String message, {bool isSuccess = false, bool isError = false, bool isWarning = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess
+                ? Icons.check_circle_outline
+                : (isError
+                    ? Icons.error_outline
+                    : (isWarning ? Icons.warning_amber_outlined : Icons.info_outline)),
+            color: Colors.white,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess
+          ? const Color(0xFF4CAF50)
+          : (isError
+              ? const Color(0xFFE85D9A)
+              : (isWarning ? const Color(0xFFFF9800) : const Color(0xFF666666))),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      duration: Duration(seconds: isError ? 3 : 2),
+    ),
+  );
+}
+
 
 extension _HomePageDialogs on _HomePageState {
   Future<List<CartItemSpec>?> _showSpecSelector(Dish dish) {
@@ -144,9 +181,7 @@ extension _HomePageDialogs on _HomePageState {
                           }
                           if (hasInvalid) {
                             setBottomState(() {});
-                            ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              const SnackBar(content: Text('请完成必选规格的选择')),
-                            );
+                            _showSnackBar(sheetContext, '请完成必选规格的选择', isWarning: true);
                             return;
                           }
 
@@ -214,9 +249,7 @@ extension _HomePageDialogs on _HomePageState {
                             });
                           } catch (e) {
                             if (!mounted) return;
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              SnackBar(content: Text('新增分类失败：$e')),
-                            );
+                            _showSnackBar(this.context, '新增分类失败', isError: true);
                           }
                         },
                         icon: const Icon(Icons.add),
@@ -243,9 +276,7 @@ extension _HomePageDialogs on _HomePageState {
                                     setLocalState(() {});
                                   } catch (e) {
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(this.context).showSnackBar(
-                                      SnackBar(content: Text('删除分类失败：$e')),
-                                    );
+                                    _showSnackBar(this.context, '删除分类失败', isError: true);
                                   }
                                 },
                                 icon: const Icon(Icons.delete_outline),

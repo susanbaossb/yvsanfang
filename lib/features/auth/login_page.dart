@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../../features/home/home_page.dart';
 import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
+import '../../utils/snackbar_helper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -66,9 +67,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _submit() async {
     final input = _nicknameController.text.trim();
     if (input.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入昵称或邮箱')),
-      );
+      SnackBarHelper.warning(context, '请输入昵称或邮箱');
       return;
     }
 
@@ -111,9 +110,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('登录失败：$e')),
-      );
+      SnackBarHelper.error(context, '登录失败');
     } finally {
       if (mounted) {
         setState(() => _saving = false);
