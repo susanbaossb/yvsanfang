@@ -47,7 +47,8 @@ lib/
    ├─ auth/
    │  └─ login_page.dart            # 登录页（首次使用填写资料）
    ├─ menu/
-   │  └─ menu_management_page.dart  # 菜单管理页（菜品增删改查）
+   │  ├─ menu_management_page.dart  # 菜单管理页（菜品增删改查、分类选择）
+   │  └─ dish_detail_page.dart     # 菜品详情页（查看菜品信息、跳转编辑）
    └─ home/
       ├─ home_page.dart             # 主页入口（状态管理、路由壳）
       ├─ home_page_models.dart      # 主页私有模型（购物车条目）
@@ -129,6 +130,12 @@ lib/
 | sort_order | integer | 排序顺序 |
 | created_at | timestamp | 创建时间 |
 
+> ⚠️ **RLS 注意事项**：`dishes` 表和 `recipe_categories` 表需要**禁用 RLS**，否则会导致菜品更新和分类查询失败：
+> ```sql
+> ALTER TABLE dishes DISABLE ROW LEVEL SECURITY;
+> ALTER TABLE recipe_categories DISABLE ROW LEVEL SECURITY;
+> ```
+
 ## 积分规则
 
 | 日期范围 | 签到奖励 |
@@ -187,6 +194,12 @@ flutter run --release
 ### Supabase 初始化
 在 `main.dart` 中，Supabase 初始化在启动图显示后后台执行，不阻塞 UI 渲染。
 
+### 表单处理注意事项
+菜品编辑表单使用 `StatefulBuilder` + `showModalBottomSheet`，需要注意：
+- 表单值使用 `_DishFormData` 类封装（而非基本类型），避免 Dart 闭包捕获问题
+- `onChanged` 回调通过 `setBottomState` 触发 UI 更新，同时修改 `formData` 对象属性
+- 这样做是因为基本类型在闭包中被捕获为值拷贝，不会影响外层变量
+
 ### 本地登录系统
 项目使用**本地 UUID** 作为用户标识，而非 Supabase Auth：
 - 用户 ID 由本地 `uuid` 包生成，通过 `local_user_storage.dart` 的 `flutter_secure_storage` 持久化存储
@@ -197,10 +210,18 @@ flutter run --release
 ## 版本信息
 
 - **应用名称**：御膳房
-- **当前版本**：1.0.1
+- **当前版本**：1.0.2
 - **开发团队**：susanbao
 
 ## 更新日志
+
+### v1.0.2 (2026-04-20)
+- 新增：菜品详情页 `dish_detail_page.dart`（展示菜品图片、名称、描述、分类、星级、价格、规格选项）
+- 新增：厨房 Tab 菜品图片点击跳转详情页
+- 优化：菜品编辑表单使用 `_DishFormData` 类解决 `StatefulBuilder` 闭包捕获问题
+- 优化：详情页布局调整（去除上下架显示，调整信息展示顺序）
+- 修复：从详情页跳转编辑后分类选择不生效的问题
+- 文档：添加 RLS 注意事项说明
 
 ### v1.0.1 (2026-04-17)
 - 新增：绑定对象功能（双向绑定，下单邮件通知给绑定对象）
