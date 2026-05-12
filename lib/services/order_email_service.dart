@@ -157,9 +157,9 @@ class OrderEmailService {
     );
 
     final message = Message()
-      ..from = Address(senderAccount, '御膳房订单通知')
+      ..from = Address(senderAccount, '御膳房')
       ..recipients.add(partnerEmail.trim())
-      ..subject = '🍽️ 御膳房新订单通知'
+      ..subject = '御膳房新订单通知'
       ..html = htmlBody;
 
     await send(message, smtpServer);

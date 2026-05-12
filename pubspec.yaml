@@ -22,6 +22,8 @@ dependencies:
   mailer: ^6.1.2
   # AI 驱动的动态对话式 UI
   genui: ^0.8.0
+  # 应用内调试面板
+  flutter_console_panel: ^0.0.3
 
 
 
