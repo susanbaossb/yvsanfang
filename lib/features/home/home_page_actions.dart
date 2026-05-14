@@ -46,6 +46,32 @@ extension _HomePageActions on _HomePageState {
     );
   }
 
+  /// 显示下单结果 GIF（2秒后自动关闭）
+  /// [isSuccess] true=成功动画(0.gif), false=失败动画(2.gif)
+  Future<void> _showOrderResultGif(bool isSuccess) async {
+    // 先显示对话框
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Image.asset(
+          isSuccess ? 'image/0.gif' : 'image/2.gif',
+          width: 200,
+          height: 200,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+    // 等待 2 秒让 GIF 播放完成
+    await Future.delayed(const Duration(seconds: 2));
+    // 自动关闭对话框
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _loadMenu() async {
     setState(() => _loadingMenu = true);
     try {
@@ -359,6 +385,10 @@ extension _HomePageActions on _HomePageState {
       await _loadOrders();
 
       if (!mounted) return;
+
+      // 显示成功 GIF
+      await _showOrderResultGif(true);
+
       _showSnackBar(
         mailError == null ? '下单成功，邮件已发送！' : '下单成功，但邮件发送失败',
         isSuccess: mailError == null,
@@ -366,6 +396,10 @@ extension _HomePageActions on _HomePageState {
       );
     } catch (e) {
       if (!mounted) return;
+
+      // 显示失败 GIF
+      await _showOrderResultGif(false);
+
       _showSnackBar('下单失败', isError: true);
     } finally {
       if (mounted) {
