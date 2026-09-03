@@ -149,6 +149,21 @@ class AuthService {
     return UserProfile.fromJson(result);
   }
 
+  /// 按用户 ID 拉取资料（用于获取绑定对象的头像/昵称）
+  Future<UserProfile?> fetchProfileById(String id) async {
+    try {
+      final result = await AppSupabase.client
+          .from('profiles')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      if (result == null) return null;
+      return UserProfile.fromJson(result);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 上传用户头像
   Future<String> uploadAvatar({
     required Uint8List bytes,

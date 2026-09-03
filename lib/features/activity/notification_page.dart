@@ -11,13 +11,9 @@
 import 'package:flutter/material.dart';
 
 import '../../models/activity_task.dart';
-import '../../models/order_summary.dart';
 import '../../services/activity_task_service.dart';
 import '../../services/auth_service.dart';
-import '../../services/local_user_storage.dart';
-import '../../services/order_service.dart';
 import '../../utils/snackbar_helper.dart';
-import 'order_detail_page.dart';
 import 'submission_detail_page.dart';
 import 'task_review_card.dart';
 
@@ -46,13 +42,11 @@ class _NotificationPageState extends State<NotificationPage>
     with SingleTickerProviderStateMixin {
   final _service = ActivityTaskService();
   final _authService = AuthService();
-  final OrderService _orderService = OrderService();
 
   late final TabController _tabController;
 
   List<TaskSubmission> _pending = [];
   List<TaskSubmission> _results = [];
-  List<OrderSummary> _orderEvents = [];
   bool _loading = true;
   bool _saving = false;
   bool _hasPartner = false;
@@ -79,9 +73,6 @@ class _NotificationPageState extends State<NotificationPage>
   }
 
   Future<void> _markMyResultsRead() async {
-    await LocalUserStorage.setMyResultsReadAt(
-      DateTime.now().toUtc().toIso8601String(),
-    );
     widget.onMyResultsRead?.call();
   }
 
@@ -105,16 +96,12 @@ class _NotificationPageState extends State<NotificationPage>
           ? await _service.fetchPartnerPending(partnerId)
           : <TaskSubmission>[];
       final results = await _service.fetchMyResults(widget.userId);
-      final orderEvents = hasPartner
-          ? await _orderService.fetchPartnerOrders(partnerId)
-          : <OrderSummary>[];
 
       if (!mounted) return;
       setState(() {
         _hasPartner = hasPartner;
         _pending = pending;
         _results = results;
-        _orderEvents = orderEvents;
       });
     } catch (e) {
       if (!mounted) return;
@@ -265,18 +252,12 @@ class _NotificationPageState extends State<NotificationPage>
         widget: _buildResultCard(r),
       ));
     }
-    for (final o in _orderEvents) {
-      items.add(_MessageItem(
-        time: o.eventTime,
-        widget: _buildOrderEventCard(o),
-      ));
-    }
     items.sort((a, b) => b.time.compareTo(a.time));
 
     if (items.isEmpty) {
       return _buildEmpty(
         icon: Icons.inbox_outlined,
-        text: '暂无消息，完成任务或对方下单后这里会显示提醒',
+        text: '暂无消息，你提交的任务被审核后会在这里显示提醒',
       );
     }
 
@@ -290,111 +271,6 @@ class _NotificationPageState extends State<NotificationPage>
         itemBuilder: (_, index) => items[index].widget,
       ),
     );
-  }
-
-  Widget _buildOrderEventCard(OrderSummary order) {
-    final isDeleted = order.status == 'deleted';
-    IconData icon;
-    Color tint;
-    String title;
-    switch (order.status) {
-      case 'completed':
-        icon = Icons.check_circle_rounded;
-        tint = Colors.green;
-        title = '订单已完成';
-      case 'cancelled':
-        icon = Icons.cancel_rounded;
-        tint = const Color(0xFFE58A00);
-        title = '订单已取消';
-      case 'deleted':
-        icon = Icons.delete_rounded;
-        tint = Colors.grey;
-        title = '订单已删除';
-      default:
-        icon = Icons.shopping_bag_rounded;
-        tint = const Color(0xFFE85D9A);
-        title = '对方下了一笔新订单';
-    }
-
-    final dishSummary = order.items.isEmpty
-        ? '暂无菜品'
-        : order.items.map((e) => e.summary).join('，');
-    final noteText =
-        order.note != null && order.note!.isNotEmpty ? ' · ${order.note}' : '';
-
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => OrderDetailPage(order: order),
-          ),
-        ),
-        child: Opacity(
-          opacity: isDeleted ? 0.6 : 1,
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Color.lerp(tint, Colors.white, 0.85),
-            child: Icon(icon, color: tint),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(dishSummary),
-                const SizedBox(height: 2),
-                Text(
-                  '共 ${order.items.length} 件 · 积分${order.totalAmount.toStringAsFixed(0)}$noteText',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _formatTime(order.eventTime),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-          ),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: Color.lerp(tint, Colors.white, 0.88),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              _orderStatusText(order.status),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: tint,
-              ),
-            ),
-          ),
-        ),
-      ),
-      ),
-    );
-  }
-
-  String _orderStatusText(String raw) {
-    switch (raw) {
-      case 'unfinished':
-      case 'done':
-        return '未完成';
-      case 'completed':
-        return '已完成';
-      case 'cancelled':
-        return '已取消';
-      case 'deleted':
-        return '已删除';
-      default:
-        return raw;
-    }
   }
 
   String _formatTime(DateTime time) {

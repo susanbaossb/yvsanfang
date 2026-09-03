@@ -366,25 +366,40 @@ extension _HomePageTabs on _HomePageState {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          OutlinedButton(
+                          _OrderActionButton(
+                            label: '完成订单',
+                            icon: Icons.check_circle_outline,
+                            foreground: const Color(0xFF237A57),
+                            background: const Color(0xFFE8F8F0),
+                            disabledForeground: const Color(0xFFB8C9C0),
+                            disabledBackground: const Color(0xFFF0F4F2),
                             onPressed: _updatingOrder ||
                                     normalizedStatus != 'unfinished'
                                 ? null
                                 : () => _updateOrderStatus(order, 'completed'),
-                            child: const Text('完成订单'),
                           ),
-                          OutlinedButton(
+                          _OrderActionButton(
+                            label: '取消订单',
+                            icon: Icons.block_outlined,
+                            foreground: const Color(0xFFB0651A),
+                            background: const Color(0xFFFFF1E0),
+                            disabledForeground: const Color(0xFFCFB9A4),
+                            disabledBackground: const Color(0xFFF7F1EA),
                             onPressed: _updatingOrder ||
                                     normalizedStatus != 'unfinished'
                                 ? null
                                 : () => _updateOrderStatus(order, 'cancelled'),
-                            child: const Text('取消订单'),
                           ),
-                          TextButton(
+                          _OrderActionButton(
+                            label: '删除订单',
+                            icon: Icons.delete_outline,
+                            foreground: const Color(0xFFC24561),
+                            background: const Color(0xFFFFEFF2),
+                            disabledForeground: const Color(0xFFCFB1B9),
+                            disabledBackground: const Color(0xFFF6EEF0),
                             onPressed: _updatingOrder
                                 ? null
                                 : () => _deleteOrder(order),
-                            child: const Text('删除订单'),
                           ),
                         ],
                       ),
@@ -442,6 +457,22 @@ extension _HomePageTabs on _HomePageState {
       ),
       selected: isSelected,
       onSelected: (_) => setState(() => _orderFilter = key),
+    );
+  }
+
+  Widget _buildMessagesTab() {
+    return MessageListPage(
+      userId: widget.profile.id,
+      activityUnread: _activityUnread,
+      orderUnread: _orderUnread,
+      chatUnread: _messageUnread,
+      hasPartner: _hasPartner,
+      partnerNickname: _partnerNickname,
+      partnerId: _partnerId,
+      onActivitySeen: _onActivityMessagesSeen,
+      onOrderSeen: _onOrderMessagesSeen,
+      onChatRead: () => setState(() => _messageUnread = 0),
+      onGoBind: () => setState(() => _tabIndex = 4),
     );
   }
 
@@ -541,13 +572,6 @@ extension _HomePageTabs on _HomePageState {
               title: '活动任务',
               subtitle: '配置任务、审核与积分',
               onTap: _openTaskManager,
-            ),
-            _buildQuickAction(
-              icon: Icons.mark_chat_unread_outlined,
-              title: '我的消息',
-              subtitle: '任务审核结果与提醒',
-              badge: _myResultUnread,
-              onTap: _openMyMessages,
             ),
           ],
         ),
@@ -1555,6 +1579,60 @@ class _TaskStatusPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 订单卡片下方三按钮的统一封装：图标 + 文字、圆角、独立配色、禁用态自动淡化。
+class _OrderActionButton extends StatelessWidget {
+  const _OrderActionButton({
+    required this.label,
+    required this.icon,
+    required this.foreground,
+    required this.background,
+    required this.disabledForeground,
+    required this.disabledBackground,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color foreground;
+  final Color background;
+  final Color disabledForeground;
+  final Color disabledBackground;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    final fg = enabled ? foreground : disabledForeground;
+    final bg = enabled ? background : disabledBackground;
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: fg),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

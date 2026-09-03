@@ -15,8 +15,11 @@ class LocalUserStorage {
   static const _keyRole = 'role';
   static const _keyEmail = 'email';
 
-  /// 「我的消息」(任务审核回执) 最近一次查看时间（ISO8601，UTC）
-  static const _keyMyResultsReadAt = 'my_results_read_at';
+  /// 活动消息（任务提交/审核）最近一次查看时间（ISO8601，UTC）
+  static const _keyActivityReadAt = 'activity_read_at';
+
+  /// 订单消息（对方下单动态）最近一次查看时间（ISO8601，UTC）
+  static const _keyOrderReadAt = 'order_read_at';
 
   /// 保存用户登录凭证
   static Future<void> saveUser({
@@ -67,13 +70,19 @@ class LocalUserStorage {
     await _storage.delete(key: _keyEmail);
   }
 
-  /// 读取「我的消息」最近一次查看时间（ISO8601 字符串，UTC）
-  static Future<String?> getMyResultsReadAt() async {
-    return await _storage.read(key: _keyMyResultsReadAt);
-  }
+  /// 读取活动消息最近一次查看时间（ISO8601 字符串，UTC）
+  static Future<String?> getActivityReadAt() async =>
+      _storage.read(key: _keyActivityReadAt);
 
-  /// 写入「我的消息」最近一次查看时间
-  static Future<void> setMyResultsReadAt(String value) async {
-    await _storage.write(key: _keyMyResultsReadAt, value: value);
-  }
+  /// 写入活动消息最近一次查看时间
+  static Future<void> setActivityReadAt(String value) async =>
+      _storage.write(key: _keyActivityReadAt, value: value);
+
+  /// 读取订单消息最近一次查看时间（ISO8601 字符串，UTC）
+  static Future<String?> getOrderReadAt() async =>
+      _storage.read(key: _keyOrderReadAt);
+
+  /// 写入订单消息最近一次查看时间
+  static Future<void> setOrderReadAt(String value) async =>
+      _storage.write(key: _keyOrderReadAt, value: value);
 }

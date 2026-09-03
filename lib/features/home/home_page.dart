@@ -24,7 +24,11 @@ import '../activity/notification_page.dart';
 import '../activity/order_detail_page.dart';
 import '../activity/task_management_page.dart';
 import '../activity/task_submit_sheet.dart';
+import '../../core/supabase_client.dart';
+import '../message/message_list_page.dart';
+import '../../services/message_service.dart';
 import '../menu/dish_detail_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/order_summary.dart';
 import '../../models/recipe_category.dart';
 import '../../models/user_profile.dart';
@@ -62,6 +66,9 @@ class _HomePageState extends State<HomePage> {
   final _recipeService = RecipeService();
   final _pointsService = PointsService();
   final _taskService = ActivityTaskService();
+  final _messageService = MessageService();
+  int _messageUnread = 0;
+  RealtimeChannel? _messageChannel;
 
   List<Dish> _dishes = [];
   List<OrderSummary> _orders = [];
@@ -74,11 +81,20 @@ class _HomePageState extends State<HomePage> {
   /// 待我审核的任务提交数量（绑定对象提交的）
   int _pendingReviewCount = 0;
 
-  /// 「我的消息」未读数量（我提交的任务被通过/驳回的回执）
-  int _myResultUnread = 0;
-
   /// 是否已绑定对象（未绑定时任务无法被审核）
   bool _hasPartner = false;
+
+  /// 消息中心：活动消息未读数（任务提交/审核）
+  int _activityUnread = 0;
+
+  /// 消息中心：订单消息未读数（对方下单动态）
+  int _orderUnread = 0;
+
+  /// 绑定对象 ID（用于订单消息列表）
+  String _partnerId = '';
+
+  /// 绑定对象昵称（用于私聊行展示）
+  String _partnerNickname = '';
 
   bool _loadingMenu = true;
   bool _loadingOrders = true;
@@ -117,12 +133,53 @@ class _HomePageState extends State<HomePage> {
     _loadMonthCheckins();
     _loadActivityTasks();
     _loadPendingReviews();
-    _loadMyResultUnread();
+    _subscribeMessages();
+    _loadMessageUnread();
+    _loadMessageCenterUnread();
+  }
+
+  @override
+  void dispose() {
+    _messageChannel?.unsubscribe();
+    super.dispose();
+  }
+
+  /// 首页订阅「发给我的消息」，用于实时更新「消息」角标
+  void _subscribeMessages() {
+    final myId = _authService.currentUserId;
+    if (myId == null) return;
+    _messageChannel?.unsubscribe();
+    _messageChannel = AppSupabase.client
+        .channel('home_messages:$myId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'receiver_id',
+            value: myId,
+          ),
+          callback: (_) {
+            if (mounted) setState(() => _messageUnread++);
+          },
+        )
+        .subscribe();
+  }
+
+  /// 拉取我收到的未读消息数（用于「消息」角标）
+  Future<void> _loadMessageUnread() async {
+    final myId = _authService.currentUserId;
+    if (myId == null) return;
+    try {
+      final n = await _messageService.fetchUnreadCount(myId);
+      if (mounted) setState(() => _messageUnread = n);
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    final tabTitles = ['厨房', '订单', '活动', '我的'];
+    final tabTitles = ['厨房', '订单', '活动', '消息', '我的'];
     // 用 IndexedStack 缓存 4 个 tab：只在首次 build 时各构建一次，
     // 切 tab 时不再重建（避免活动页等每次切回都整页重绘/像刷新）。
     final body = IndexedStack(
@@ -131,6 +188,7 @@ class _HomePageState extends State<HomePage> {
         _buildKitchenTab(),
         _buildOrdersTab(),
         _buildActivitiesTab(),
+        _buildMessagesTab(),
         _buildProfileTab(),
       ],
     );
@@ -144,7 +202,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: _loadOrders,
               icon: const Icon(Icons.refresh),
             ),
-          if (_tabIndex == 3 && AppFeatureFlags.showPointsAdjustSettings)
+          if (_tabIndex == 4 && AppFeatureFlags.showPointsAdjustSettings)
             IconButton(
               onPressed: _openSettingsManager,
               icon: const Icon(Icons.settings_suggest_outlined),
@@ -178,19 +236,32 @@ class _HomePageState extends State<HomePage> {
               _showCartDetail = false;
             }
           });
-          // 切到"我的"页刷新待审核数量与我的消息未读（消息回执为异步到达）
+          // 切到"消息"页刷新各分类未读（消息回执为异步到达）
           if (index == 3) {
+            _loadMessageCenterUnread();
+            _loadMessageUnread();
+          }
+          // 切到"我的"页刷新待审核数量（消息回执为异步到达）
+          if (index == 4) {
             _loadPendingReviews();
-            _loadMyResultUnread();
           }
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
               icon: Icon(Icons.soup_kitchen_outlined), label: '厨房'),
           NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined), label: '订单'),
           NavigationDestination(
               icon: Icon(Icons.local_activity_outlined), label: '活动'),
+          NavigationDestination(
+            icon: Badge.count(
+              count: _activityUnread + _orderUnread + _messageUnread,
+              isLabelVisible:
+                  _activityUnread + _orderUnread + _messageUnread > 0,
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
+            label: '消息',
+          ),
           NavigationDestination(icon: Icon(Icons.person_outline), label: '我的'),
         ],
       ),

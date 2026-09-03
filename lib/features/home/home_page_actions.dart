@@ -197,28 +197,60 @@ extension _HomePageActions on _HomePageState {
     } catch (_) {}
   }
 
-  /// 计算「我的消息」未读数（任务审核结果 + 对方订单事件，且晚于上次查看时间）
-  Future<void> _loadMyResultUnread() async {
+  /// 计算「消息中心」各分类未读数（活动消息 + 订单消息 + 私聊）
+  Future<void> _loadMessageCenterUnread() async {
     try {
       final userId = _authService.currentUserId;
       if (userId == null) return;
       final profile = await _authService.fetchMyProfile();
       final partnerId = profile?.partnerId;
+      final hasPartner = partnerId != null && partnerId.isNotEmpty;
       final results = await _taskService.fetchMyResults(userId);
-      final orders = (partnerId != null && partnerId.isNotEmpty)
+      final orders = hasPartner
           ? await _orderService.fetchPartnerOrders(partnerId)
           : <OrderSummary>[];
-      final readAtStr = await LocalUserStorage.getMyResultsReadAt();
-      final parsed = readAtStr == null ? null : DateTime.tryParse(readAtStr);
-      final unread = parsed == null
-          ? results.length + orders.length
-          : results
-                  .where((r) => (r.reviewedAt ?? r.createdAt)?.isAfter(parsed) ?? false)
-                  .length +
-              orders.where((o) => o.eventTime.isAfter(parsed)).length;
+      final pending = hasPartner
+          ? await _taskService.fetchPartnerPending(partnerId)
+          : <TaskSubmission>[];
+      final actReadStr = await LocalUserStorage.getActivityReadAt();
+      final ordReadStr = await LocalUserStorage.getOrderReadAt();
+      final actRead =
+          actReadStr == null ? null : DateTime.tryParse(actReadStr);
+      final ordRead =
+          ordReadStr == null ? null : DateTime.tryParse(ordReadStr);
+      final activityUnread = pending.length +
+          (actRead == null
+              ? results.length
+              : results
+                  .where((r) =>
+                      (r.reviewedAt ?? r.createdAt)?.isAfter(actRead) ?? false)
+                  .length);
+      final orderUnread = ordRead == null
+          ? orders.length
+          : orders.where((o) => o.eventTime.isAfter(ordRead)).length;
       if (!mounted) return;
-      setState(() => _myResultUnread = unread);
+      setState(() {
+        _hasPartner = hasPartner;
+        _partnerId = partnerId ?? '';
+        _partnerNickname = profile?.partnerNickname ?? '';
+        _activityUnread = activityUnread;
+        _orderUnread = orderUnread;
+      });
     } catch (_) {}
+  }
+
+  /// 打开「活动消息」后标记已读
+  Future<void> _onActivityMessagesSeen() async {
+    await LocalUserStorage.setActivityReadAt(
+        DateTime.now().toUtc().toIso8601String());
+    await _loadMessageCenterUnread();
+  }
+
+  /// 打开「订单消息」后标记已读
+  Future<void> _onOrderMessagesSeen() async {
+    await LocalUserStorage.setOrderReadAt(
+        DateTime.now().toUtc().toIso8601String());
+    await _loadMessageCenterUnread();
   }
 
   /// 打开消息与提醒（审核对象提交的任务）
@@ -227,31 +259,13 @@ extension _HomePageActions on _HomePageState {
       MaterialPageRoute<void>(
         builder: (_) => NotificationPage(
           userId: _authService.currentUserId!,
-          onMyResultsRead: _loadMyResultUnread,
+          onMyResultsRead: _onActivityMessagesSeen,
         ),
       ),
     );
     if (!mounted) return;
     await _loadActivityTasks();
-    await _loadMyResultUnread();
-    await _loadPendingReviews();
-    await _loadPoints();
-  }
-
-  /// 打开「我的消息」（我的任务被审核的结果回执）
-  Future<void> _openMyMessages() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => NotificationPage(
-          userId: _authService.currentUserId!,
-          initialTab: 1,
-          onMyResultsRead: _loadMyResultUnread,
-        ),
-      ),
-    );
-    if (!mounted) return;
-    await _loadActivityTasks();
-    await _loadMyResultUnread();
+    await _loadMessageCenterUnread();
     await _loadPendingReviews();
     await _loadPoints();
   }
