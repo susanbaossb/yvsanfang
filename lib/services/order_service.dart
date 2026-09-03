@@ -48,6 +48,22 @@ class CartItem {
 class OrderService {
   final _pointsService = PointsService();
 
+  /// 生成 18 位纯数字订单号：日期时间(14 位) + 微秒后 4 位(4 位)
+  /// 同一秒内微秒不同即可保证唯一，纯数字、无字母。
+  static String _generateOrderNo() {
+    final now = DateTime.now();
+    final datePart =
+        '${now.year}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}'
+        '${now.hour.toString().padLeft(2, '0')}'
+        '${now.minute.toString().padLeft(2, '0')}'
+        '${now.second.toString().padLeft(2, '0')}';
+    final microTail =
+        now.microsecond.toString().padLeft(6, '0').substring(2); // 取后 4 位
+    return '$datePart$microTail';
+  }
+
   Future<String> placeOrder({
     required String userId,
     required List<CartItem> items,
@@ -85,8 +101,9 @@ class OrderService {
           'status': 'unfinished',
           'total_amount': pointsNeeded, // 使用积分数作为总额
           'note': finalNote,
+          'order_no': _generateOrderNo(), // 18 位纯数字订单号
         })
-        .select('id')
+        .select('id, order_no')
         .single();
 
     final orderId = order['id'] as String;
@@ -108,7 +125,22 @@ class OrderService {
   Future<List<OrderSummary>> fetchOrders() async {
     final rows = await AppSupabase.client
         .from('orders')
-        .select('id,status,total_amount,created_at,note,order_items(quantity,price,dishes(name,image_url))')
+        .select(
+          'id,order_no,status,total_amount,created_at,updated_at,note,order_items(quantity,price,dishes(name,image_url))',
+        )
+        .order('created_at', ascending: false);
+
+    return rows.map<OrderSummary>((raw) => OrderSummary.fromJson(raw)).toList();
+  }
+
+  /// 获取指定用户下的订单（用于消息提醒：对方下的订单会提醒我，含已删除）
+  Future<List<OrderSummary>> fetchPartnerOrders(String partnerId) async {
+    final rows = await AppSupabase.client
+        .from('orders')
+        .select(
+          'id,order_no,status,total_amount,created_at,updated_at,note,order_items(quantity,price,dishes(name,image_url))',
+        )
+        .eq('user_id', partnerId)
         .order('created_at', ascending: false);
 
     return rows.map<OrderSummary>((raw) => OrderSummary.fromJson(raw)).toList();
@@ -118,9 +150,18 @@ class OrderService {
     required String orderId,
     required String status,
   }) async {
-    await AppSupabase.client
-        .from('orders')
-        .update({'status': status}).eq('id', orderId);
+    // 更新状态的同时写入变化时间，供消息未读判定。
+    // 若数据库尚无 updated_at 列，则降级为仅更新状态（不影响主流程）。
+    try {
+      await AppSupabase.client.from('orders').update({
+        'status': status,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', orderId);
+    } catch (_) {
+      await AppSupabase.client
+          .from('orders')
+          .update({'status': status}).eq('id', orderId);
+    }
   }
 }
 

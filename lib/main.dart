@@ -13,7 +13,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_console_panel/flutter_console_panel.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -51,19 +50,7 @@ Future<void> main() async {
   }
 
   // 先显示启动图（无需等待初始化）
-  runApp(
-    DebugPanel.init(
-      child: const DujiaYushanfangApp(),
-      config: const DebugConfig(
-        // Release 模式下也可显示（仅调试用）
-        showInReleaseMode: false,
-        // 日志最多保留 2000 条
-        maxLogEntries: 2000,
-        // 网络记录最多保留 500 条
-        maxNetworkEntries: 500,
-      ),
-    ),
-  );
+  runApp(const DujiaYushanfangApp());
 
   // 初始化 Supabase
   try {

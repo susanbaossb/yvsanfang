@@ -6,6 +6,9 @@
 
 - **厨房点餐**：浏览菜品、选择规格、加入购物车并提交订单
 - **订单管理**：按状态筛选订单，支持未完成/已完成/已取消/删除
+- **消息与提醒**：聚合订单动态与任务审核结果，分「待我审核 / 我的消息 / 订单」三个标签页，可点击进入详情
+- **活动任务**：配置文字 / 图片视频 / 语音三类任务，对方提交后由你审核，通过即加积分
+- **订单与任务详情**：从消息列表或首页订单点击进入详情页；任务详情页内可直接「通过 / 不通过」审核
 - **活动签到**：每日签到、月度签到展示、积分累计
 - **个人中心**：编辑资料、绑定对象、分类管理、菜单管理、设置管理
 - **绑定对象**：输入昵称或邮箱绑定另一半，双向下单邮件通知
@@ -30,15 +33,17 @@ lib/
 ├─ models/                          # 数据模型层
 │  ├─ user_profile.dart             # 用户资料模型（昵称、身份、积分、邮箱）
 │  ├─ dish.dart                     # 菜品模型（名称、价格、分类、规格）
-│  ├─ order_summary.dart            # 订单模型（状态、金额、明细）
+│  ├─ order_summary.dart            # 订单模型（状态、金额、明细、order_no）
+│  ├─ activity_task.dart            # 活动任务模型（TaskType / ActivityTask / TaskSubmission）
 │  ├─ recipe.dart                   # 菜谱模型
 │  └─ recipe_category.dart          # 菜谱分类模型
 ├─ services/                        # 业务服务层（Supabase 数据库操作）
 │  ├─ auth_service.dart             # 认证服务（资料管理、头像上传、绑定对象）
 │  ├─ local_user_storage.dart       # 本地存储服务（用户会话持久化）
 │  ├─ menu_service.dart             # 菜单服务（菜品 CRUD、上下架）
-│  ├─ order_service.dart            # 订单服务（下单、查询、更新状态）
+│  ├─ order_service.dart            # 订单服务（下单、查询、更新状态、生成订单号）
 │  ├─ order_email_service.dart      # 邮件通知服务（QQ SMTP 下单邮件）
+│  ├─ activity_task_service.dart    # 活动任务服务（任务与提交记录读写、审核）
 │  ├─ points_service.dart           # 积分服务（签到、积分增减）
 │  └─ recipe_service.dart           # 菜谱分类服务（分类 CRUD）
 └─ features/
@@ -49,6 +54,14 @@ lib/
    ├─ menu/
    │  ├─ menu_management_page.dart  # 菜单管理页（菜品增删改查、分类选择）
    │  └─ dish_detail_page.dart     # 菜品详情页（查看菜品信息、跳转编辑）
+   ├─ activity/                      # 消息与提醒、活动任务
+   │  ├─ notification_page.dart      # 消息中心（待我审核 / 我的消息 / 订单）
+   │  ├─ task_management_page.dart   # 任务管理页（增删改、启用/停用）
+   │  ├─ task_review_card.dart       # 待审核卡片（通过/不通过）
+   │  ├─ submission_content.dart     # 提交内容展示（文字/图片/视频/语音，卡片与详情页复用）
+   │  ├─ order_detail_page.dart      # 订单详情页
+   │  ├─ submission_detail_page.dart # 任务提交详情页（可直接审核）
+   │  └─ media_preview_page.dart     # 媒体预览页（图片/视频）
    └─ home/
       ├─ home_page.dart             # 主页入口（状态管理、路由壳）
       ├─ home_page_models.dart      # 主页私有模型（购物车条目）
@@ -104,7 +117,9 @@ lib/
 | status | text | 状态（unfinished/completed/cancelled/deleted） |
 | total_amount | numeric | 积分总额 |
 | note | text | 备注 |
+| order_no | text | 18 位纯数字订单号（新订单由客户端生成；历史订单为 NULL） |
 | created_at | timestamp | 创建时间 |
+| updated_at | timestamp | 状态变更时间（更新状态时写入，用于消息时间判定） |
 
 ### order_items（订单明细表）
 | 字段 | 类型 | 说明 |
@@ -114,6 +129,38 @@ lib/
 | dish_id | uuid | 菜品 ID |
 | quantity | integer | 数量 |
 | price | numeric | 单价 |
+
+### activity_tasks（活动任务配置表）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | uuid | 主键 |
+| title | text | 任务标题 |
+| description | text | 任务描述 |
+| points | integer | 完成后奖励积分 |
+| type | text | 类型（text / media / audio） |
+| enabled | boolean | 是否启用 |
+| sort_order | integer | 排序顺序 |
+| deleted | boolean | 软删除标记 |
+| created_at | timestamptz | 创建时间 |
+
+### activity_task_submissions（任务提交记录表）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | uuid | 主键 |
+| task_id | uuid | 关联任务 ID |
+| user_id | uuid | 提交用户 ID（本地 UUID，不关联 auth.users） |
+| nickname | text | 提交时冗余的昵称 |
+| task_title | text | 提交时冗余的任务标题 |
+| task_points | integer | 提交时冗余的任务积分 |
+| task_type | text | 提交时冗余的任务类型 |
+| content | text | 文字描述内容 |
+| media_url | text | 图片 / 视频 / 语音地址 |
+| status | text | 审核状态（pending / approved / rejected） |
+| reject_reason | text | 驳回原因 |
+| created_at | timestamptz | 提交时间 |
+| reviewed_at | timestamptz | 审核时间 |
+
+> 媒体文件存储于 Supabase Storage 桶 `activity-media`（公开桶，单文件上限 50MB）。
 
 ### daily_checkins（每日签到表）
 | 字段 | 类型 | 说明 |
@@ -130,10 +177,12 @@ lib/
 | sort_order | integer | 排序顺序 |
 | created_at | timestamp | 创建时间 |
 
-> ⚠️ **RLS 注意事项**：`dishes` 表和 `recipe_categories` 表需要**禁用 RLS**，否则会导致菜品更新和分类查询失败：
+> ⚠️ **RLS 注意事项**：`dishes`、`recipe_categories`、`activity_tasks`、`activity_task_submissions` 表需要**禁用 RLS**（或配置宽松的公开策略），否则会导致菜品更新、分类查询、活动任务读写失败：
 > ```sql
 > ALTER TABLE dishes DISABLE ROW LEVEL SECURITY;
 > ALTER TABLE recipe_categories DISABLE ROW LEVEL SECURITY;
+> ALTER TABLE activity_tasks DISABLE ROW LEVEL SECURITY;
+> ALTER TABLE activity_task_submissions DISABLE ROW LEVEL SECURITY;
 > ```
 
 ## 积分规则
@@ -210,10 +259,20 @@ flutter run --release
 ## 版本信息
 
 - **应用名称**：御膳房
-- **当前版本**：1.0.2
+- **当前版本**：1.0.3
 - **开发团队**：susanbao
 
 ## 更新日志
+
+### v1.0.3 (2026-09-03)
+- 新增：消息中心 `notification_page.dart`（待我审核 / 我的消息 / 订单 三个标签页）
+- 新增：活动任务系统「任务管理页 + 待审核卡片 + 提交内容展示（文字/图片/视频/语音）」
+- 新增：订单详情页 `order_detail_page.dart` 与任务提交详情页 `submission_detail_page.dart`（详情页内可直接通过/驳回审核）
+- 新增：消息列表卡片点击跳转详情页；任务详情页复用审核能力
+- 新增：18 位纯数字订单号 `order_no`（新订单由客户端生成，历史订单保持原 UUID 不动）
+- 优化：消息列表「我的消息」与「订单」卡片显示时间（今天 HH:mm / M月d日 HH:mm）
+- 数据库：新增 `orders.order_no` 列、`activity_tasks` / `activity_task_submissions` 表、`activity-media` 存储桶（迁移见 `supabase/`）
+- 文档：补充核心功能、目录结构、数据库表结构与 RLS 注意事项
 
 ### v1.0.2 (2026-04-20)
 - 新增：菜品详情页 `dish_detail_page.dart`（展示菜品图片、名称、描述、分类、星级、价格、规格选项）

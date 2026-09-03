@@ -25,19 +25,34 @@ class OrderDishItem {
 class OrderSummary {
   OrderSummary({
     required this.id,
+    this.orderNo,
     required this.status,
     required this.totalAmount,
     required this.createdAt,
     required this.items,
     this.note,
+    this.updatedAt,
   });
 
   final String id;
+
+  /// 18 位纯数字订单号（新订单）。历史订单为 null，展示时回退到 id。
+  final String? orderNo;
+
   final String status;
   final double totalAmount;
   final DateTime createdAt;
   final List<OrderDishItem> items;
   final String? note;
+
+  /// 状态变化时由服务写入；用于消息未读判定（晚于创建时间）
+  final DateTime? updatedAt;
+
+  /// 事件时间：状态变化用 updated_at，否则用创建时间
+  DateTime get eventTime => updatedAt ?? createdAt;
+
+  /// 对外展示用的订单号：新订单用 order_no，历史订单回退到 id
+  String get orderNumber => orderNo ?? id;
 
   factory OrderSummary.fromJson(Map<String, dynamic> json) {
     final orderItems = (json['order_items'] as List<dynamic>? ?? <dynamic>[])
@@ -55,11 +70,15 @@ class OrderSummary {
 
     return OrderSummary(
       id: json['id'] as String,
+      orderNo: json['order_no'] as String?,
       status: json['status'] as String? ?? 'unfinished',
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       items: orderItems,
       note: json['note'] as String?,
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
     );
   }
 }

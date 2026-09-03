@@ -15,6 +15,9 @@ class LocalUserStorage {
   static const _keyRole = 'role';
   static const _keyEmail = 'email';
 
+  /// 「我的消息」(任务审核回执) 最近一次查看时间（ISO8601，UTC）
+  static const _keyMyResultsReadAt = 'my_results_read_at';
+
   /// 保存用户登录凭证
   static Future<void> saveUser({
     required String userId,
@@ -62,5 +65,15 @@ class LocalUserStorage {
     await _storage.delete(key: _keyNickname);
     await _storage.delete(key: _keyRole);
     await _storage.delete(key: _keyEmail);
+  }
+
+  /// 读取「我的消息」最近一次查看时间（ISO8601 字符串，UTC）
+  static Future<String?> getMyResultsReadAt() async {
+    return await _storage.read(key: _keyMyResultsReadAt);
+  }
+
+  /// 写入「我的消息」最近一次查看时间
+  static Future<void> setMyResultsReadAt(String value) async {
+    await _storage.write(key: _keyMyResultsReadAt, value: value);
   }
 }

@@ -143,6 +143,7 @@ class _LoginPageState extends State<LoginPage> {
             colors: [Color(0xFFFFF0F7), Color(0xFFFFFBFD)],
           ),
         ),
+      child: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
@@ -244,6 +245,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

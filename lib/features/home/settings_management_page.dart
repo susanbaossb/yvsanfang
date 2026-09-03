@@ -7,6 +7,7 @@
 /// 4. 显示用户昵称、身份、ID、当前积分
 /// 
 /// 入口：在"我的"页面点击设置图标（showPointsAdjustSettings=true 时显示）
+/// 页面右上角"任务管理"图标可进入活动任务配置与审核
 
 import 'package:flutter/material.dart';
 
@@ -58,7 +59,6 @@ class _SettingsManagementPageState extends State<SettingsManagementPage> {
           keyboardType: TextInputType.number,
           onChanged: (value) => input = value,
           decoration: const InputDecoration(
-            border: OutlineInputBorder(),
             labelText: '积分数',
             hintText: '请输入正整数',
           ),
@@ -189,8 +189,23 @@ class _SettingsManagementPageState extends State<SettingsManagementPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('设置管理')),
-      body: SafeArea(child: body),
+      appBar: AppBar(
+        title: const Text('设置管理'),
+        actions: [
+          IconButton(
+            tooltip: '刷新',
+            onPressed: _loadProfiles,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: body),
+          ],
+        ),
+      ),
     );
   }
 }

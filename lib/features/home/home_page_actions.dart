@@ -7,6 +7,7 @@
 /// - 签到相关：_doCheckIn、_checkToday、_loadMonthCheckins
 /// - 购物车操作：_addDish、_removeDish、_addCartEntry、_removeCartKey
 /// - 订单操作：_placeOrder、_updateOrderStatus、_deleteOrder
+/// - 活动任务：_loadActivityTasks、_submitTask、_submissionForTask
 /// - 页面跳转：_openMenuManager、_openSettingsManager、_openProfileEdit
 /// - 辅助方法：_buildCartKey、_dishQuantity、_normalizedOrderStatus
 
@@ -169,6 +170,149 @@ extension _HomePageActions on _HomePageState {
       _showSnackBar('签到失败', isError: true);
     } finally {
       if (mounted) setState(() => _checkingIn = false);
+    }
+  }
+
+  /// 待我审核的数量（对象提交的任务提醒）
+  Future<void> _loadPendingReviews() async {
+    try {
+      await _authService.initCurrentUser();
+      final profile = await _authService.fetchMyProfile();
+      final partnerId = profile?.partnerId;
+      final hasPartner = partnerId != null && partnerId.isNotEmpty;
+      if (!hasPartner) {
+        if (!mounted) return;
+        setState(() {
+          _hasPartner = false;
+          _pendingReviewCount = 0;
+        });
+        return;
+      }
+      final list = await _taskService.fetchPartnerPending(partnerId);
+      if (!mounted) return;
+      setState(() {
+        _hasPartner = true;
+        _pendingReviewCount = list.length;
+      });
+    } catch (_) {}
+  }
+
+  /// 计算「我的消息」未读数（任务审核结果 + 对方订单事件，且晚于上次查看时间）
+  Future<void> _loadMyResultUnread() async {
+    try {
+      final userId = _authService.currentUserId;
+      if (userId == null) return;
+      final profile = await _authService.fetchMyProfile();
+      final partnerId = profile?.partnerId;
+      final results = await _taskService.fetchMyResults(userId);
+      final orders = (partnerId != null && partnerId.isNotEmpty)
+          ? await _orderService.fetchPartnerOrders(partnerId)
+          : <OrderSummary>[];
+      final readAtStr = await LocalUserStorage.getMyResultsReadAt();
+      final parsed = readAtStr == null ? null : DateTime.tryParse(readAtStr);
+      final unread = parsed == null
+          ? results.length + orders.length
+          : results
+                  .where((r) => (r.reviewedAt ?? r.createdAt)?.isAfter(parsed) ?? false)
+                  .length +
+              orders.where((o) => o.eventTime.isAfter(parsed)).length;
+      if (!mounted) return;
+      setState(() => _myResultUnread = unread);
+    } catch (_) {}
+  }
+
+  /// 打开消息与提醒（审核对象提交的任务）
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NotificationPage(
+          userId: _authService.currentUserId!,
+          onMyResultsRead: _loadMyResultUnread,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _loadActivityTasks();
+    await _loadMyResultUnread();
+    await _loadPendingReviews();
+    await _loadPoints();
+  }
+
+  /// 打开「我的消息」（我的任务被审核的结果回执）
+  Future<void> _openMyMessages() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NotificationPage(
+          userId: _authService.currentUserId!,
+          initialTab: 1,
+          onMyResultsRead: _loadMyResultUnread,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _loadActivityTasks();
+    await _loadMyResultUnread();
+    await _loadPendingReviews();
+    await _loadPoints();
+  }
+
+  /// 当前用户在某个任务上的最新提交记录
+  TaskSubmission? _submissionForTask(String taskId) {
+    for (final item in _mySubmissions) {
+      if (item.taskId == taskId) return item;
+    }
+    return null;
+  }
+
+  Future<void> _loadActivityTasks() async {
+    setState(() => _loadingTasks = true);
+    try {
+      final tasks = await _taskService.fetchTasks();
+      final submissions =
+          await _taskService.fetchMySubmissions(_authService.currentUserId!);
+      if (!mounted) return;
+      setState(() {
+        _tasks = tasks;
+        _mySubmissions = submissions;
+      });
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingTasks = false);
+    }
+  }
+
+  /// 打开提交弹层并提交任务
+  Future<void> _submitTask(ActivityTask task) async {
+    final result = await showModalBottomSheet<TaskSubmitResult>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => TaskSubmitSheet(
+        task: task,
+        userId: _authService.currentUserId!,
+      ),
+    );
+    if (result == null) return;
+
+    try {
+      await _taskService.submitTask(
+        task: task,
+        userId: _authService.currentUserId!,
+        nickname: widget.profile.nickname,
+        content: result.content,
+        mediaUrl: result.mediaUrl,
+      );
+      if (!mounted) return;
+      _showSnackBar('提交成功，等待审核', isSuccess: true);
+      await _loadActivityTasks();
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(
+        e.toString().replaceFirst('Exception: ', ''),
+        isError: true,
+      );
     }
   }
 
@@ -465,7 +609,20 @@ extension _HomePageActions on _HomePageState {
     );
     if (!mounted) return;
     await _loadPoints();
+    // 配置任务后回到活动页即可看到最新任务
+    await _loadActivityTasks();
   }
+
+  Future<void> _openTaskManager() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const TaskManagementPage()),
+    );
+    if (!mounted) return;
+    // 配置任务后回到活动页即可看到最新任务
+    await _loadActivityTasks();
+    await _loadPoints();
+  }
+
 
   Future<void> _openProfileEdit() async {
     final result = await Navigator.of(context).push<bool>(
@@ -473,9 +630,10 @@ extension _HomePageActions on _HomePageState {
           builder: (_) => ProfileEditPage(profile: widget.profile)),
     );
     if (result == true && !mounted) return;
-    // 刷新页面状态
+    // 刷新页面状态（绑定对象后需要刷新待审核提醒数量）
     await _loadPoints();
     await _loadMenu();
+    await _loadPendingReviews();
   }
 
   String _statusText(String raw) {

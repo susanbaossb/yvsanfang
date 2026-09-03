@@ -5,7 +5,7 @@
 /// 功能：
 /// - _buildKitchenTab：厨房 Tab（菜品列表、分类筛选、购物车栏）
 /// - _buildOrdersTab：订单 Tab（订单列表、状态筛选、操作按钮）
-/// - _buildActivitiesTab：活动 Tab（签到日历、积分展示）
+/// - _buildActivitiesTab：活动 Tab（签到日历、积分展示、活动任务列表）
 /// - _buildProfileTab：我的 Tab（个人信息入口、快捷功能）
 /// - _buildBottomOrderBar：底部购物车栏
 /// - _buildCartDetailPanel：购物车详情弹层
@@ -254,8 +254,9 @@ extension _HomePageTabs on _HomePageState {
             )
           else
             ...orders.map((order) {
-              final shortId =
-                  order.id.length >= 8 ? order.id.substring(0, 8) : order.id;
+              final shortId = order.orderNumber.length >= 8
+                  ? order.orderNumber.substring(0, 8)
+                  : order.orderNumber;
               final normalizedStatus = _normalizedOrderStatus(order.status);
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
@@ -264,6 +265,16 @@ extension _HomePageTabs on _HomePageState {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => OrderDetailPage(order: order),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                       Text(
                         '订单 #$shortId · 积分${order.totalAmount.toStringAsFixed(0)}',
                         style: const TextStyle(fontWeight: FontWeight.w700),
@@ -347,6 +358,9 @@ extension _HomePageTabs on _HomePageState {
                           style: TextStyle(color: Colors.grey.shade700),
                         ),
                       ],
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -438,7 +452,7 @@ extension _HomePageTabs on _HomePageState {
         Card(
           child: InkWell(
             onTap: _openProfileEdit,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -518,12 +532,78 @@ extension _HomePageTabs on _HomePageState {
             _buildQuickAction(
               icon: Icons.notifications_none,
               title: '消息通知',
-              subtitle: '厨房动态与提醒',
-              onTap: () {},
+              subtitle: '对象的任务提醒与审核',
+              badge: _pendingReviewCount,
+              onTap: _openNotifications,
+            ),
+            _buildQuickAction(
+              icon: Icons.task_alt,
+              title: '活动任务',
+              subtitle: '配置任务、审核与积分',
+              onTap: _openTaskManager,
+            ),
+            _buildQuickAction(
+              icon: Icons.mark_chat_unread_outlined,
+              title: '我的消息',
+              subtitle: '任务审核结果与提醒',
+              badge: _myResultUnread,
+              onTap: _openMyMessages,
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        _buildLogoutButton(),
       ],
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _confirmLogout,
+        icon: const Icon(Icons.logout, size: 18),
+        label: const Text('退出账号'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFFE85D9A),
+          side: const BorderSide(color: Color(0xFFFFB3D1)),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('退出账号'),
+        content: const Text('退出后将回到登录页，可用其他账号登录测试。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFE85D9A),
+            ),
+            child: const Text('退出'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      (_) => false,
     );
   }
 
@@ -532,6 +612,7 @@ extension _HomePageTabs on _HomePageState {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    int badge = 0,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
@@ -543,28 +624,60 @@ extension _HomePageTabs on _HomePageState {
           border: Border.all(color: const Color(0xFFFFE1EE)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              Icon(icon, color: const Color(0xFFE85D9A)),
-              const SizedBox(width: 8),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0F7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: const Color(0xFFE85D9A), size: 21),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF3A2A35),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
               ),
+              if (badge > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE85D9A),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    badge > 99 ? '99+' : '$badge',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1180,7 +1293,269 @@ extension _HomePageTabs on _HomePageState {
             ),
           ),
         ),
+        const SizedBox(height: 10),
+        _buildTasksSection(),
       ],
+    );
+  }
+
+  /// 活动任务列表（展示在签到卡片下方）
+  Widget _buildTasksSection() {
+    if (_loadingTasks) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    final doneCount = _tasks
+        .where((task) => _submissionForTask(task.id)?.isApproved ?? false)
+        .length;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.task_alt_rounded,
+                    size: 18, color: Color(0xFFE85D9A)),
+                const SizedBox(width: 6),
+                const Text(
+                  '活动任务',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF3A2A35),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0F7),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '已完成 $doneCount/${_tasks.length}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFE58A00),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (_tasks.isNotEmpty && !_hasPartner) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7FB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFE1EE)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '在个人主页绑定对象后，TA 才能收到你的任务提醒并审核',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            if (_tasks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Text(
+                    '还没有配置任务哦～',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+              )
+            else
+              ..._tasks.map(_buildTaskTile),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskTile(ActivityTask task) {
+    final submission = _submissionForTask(task.id);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCFE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFE1EE)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0F7),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              task.type.icon,
+              size: 20,
+              color: const Color(0xFFE85D9A),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (task.description.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    task.description,
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.monetization_on_outlined,
+                        size: 14, color: Color(0xFFFFB000)),
+                    const SizedBox(width: 2),
+                    Text(
+                      '+${task.points}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFFF9900),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      task.type.label,
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+                if (submission != null && submission.isRejected) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '驳回原因：${(submission.rejectReason?.isNotEmpty ?? false) ? submission.rejectReason : '未填写'}',
+                    style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildTaskAction(task, submission),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskAction(ActivityTask task, TaskSubmission? submission) {
+    if (submission == null || submission.isRejected) {
+      return FilledButton(
+        onPressed: () => _submitTask(task),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(72, 34),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(submission == null ? '去完成' : '继续完成'),
+      );
+    }
+
+    if (submission.isPending) {
+      return const _TaskStatusPill(
+        text: '待审核',
+        background: Color(0xFFFFF3E0),
+        foreground: Color(0xFFE58A00),
+        icon: Icons.hourglass_top_rounded,
+      );
+    }
+
+    return const _TaskStatusPill(
+      text: '已完成',
+      background: Color(0xFFE8F5E9),
+      foreground: Color(0xFF2E7D32),
+      icon: Icons.check_circle,
+    );
+  }
+}
+
+/// 任务状态胶囊：自绘避免 M3 主题下 Chip 文字色被吃掉
+class _TaskStatusPill extends StatelessWidget {
+  const _TaskStatusPill({
+    required this.text,
+    required this.background,
+    required this.foreground,
+    this.icon,
+  });
+
+  final String text;
+  final Color background;
+  final Color foreground;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 32,
+      constraints: const BoxConstraints(minWidth: 72),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: foreground),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: foreground,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
