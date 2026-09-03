@@ -6,7 +6,10 @@
 
 - **厨房点餐**：浏览菜品、选择规格、加入购物车并提交订单
 - **订单管理**：按状态筛选订单，支持未完成/已完成/已取消/删除
-- **消息与提醒**：聚合订单动态与任务审核结果，分「待我审核 / 我的消息 / 订单」三个标签页，可点击进入详情
+- **消息中心**：底部「消息」聚合「系统消息」（活动消息 + 订单消息，合并为一组）与「与对象的私聊」三大入口，各入口显示未读红点，底部导航「消息」显示总未读条数
+  - **活动消息**：任务提交与审核提醒（`notification_page` 的「待我审核 / 我的消息」两个标签页），不含订单
+  - **订单消息**：TA 的订单动态，富卡片展示（状态、菜品、积分、时间），点击进入订单详情
+  - **私聊**：与绑定对象的一对一即时聊天，基于 Supabase Realtime（WebSocket）实时收发，打开即标记已读，支持文字 / 图片 / 视频
 - **活动任务**：配置文字 / 图片视频 / 语音三类任务，对方提交后由你审核，通过即加积分
 - **订单与任务详情**：从消息列表或首页订单点击进入详情页；任务详情页内可直接「通过 / 不通过」审核
 - **活动签到**：每日签到、月度签到展示、积分累计
@@ -35,6 +38,7 @@ lib/
 │  ├─ dish.dart                     # 菜品模型（名称、价格、分类、规格）
 │  ├─ order_summary.dart            # 订单模型（状态、金额、明细、order_no）
 │  ├─ activity_task.dart            # 活动任务模型（TaskType / ActivityTask / TaskSubmission）
+│  ├─ message.dart                  # 私聊消息模型（发送/接收、文本/媒体、已读时间）
 │  ├─ recipe.dart                   # 菜谱模型
 │  └─ recipe_category.dart          # 菜谱分类模型
 ├─ services/                        # 业务服务层（Supabase 数据库操作）
@@ -44,6 +48,7 @@ lib/
 │  ├─ order_service.dart            # 订单服务（下单、查询、更新状态、生成订单号）
 │  ├─ order_email_service.dart      # 邮件通知服务（QQ SMTP 下单邮件）
 │  ├─ activity_task_service.dart    # 活动任务服务（任务与提交记录读写、审核）
+│  ├─ message_service.dart          # 私聊消息服务（发送、拉取对话、标记已读、未读计数、媒体上传）
 │  ├─ points_service.dart           # 积分服务（签到、积分增减）
 │  └─ recipe_service.dart           # 菜谱分类服务（分类 CRUD）
 └─ features/
@@ -55,13 +60,17 @@ lib/
    │  ├─ menu_management_page.dart  # 菜单管理页（菜品增删改查、分类选择）
    │  └─ dish_detail_page.dart     # 菜品详情页（查看菜品信息、跳转编辑）
    ├─ activity/                      # 消息与提醒、活动任务
-   │  ├─ notification_page.dart      # 消息中心（待我审核 / 我的消息 / 订单）
+   │  ├─ notification_page.dart      # 活动消息中心（待我审核 / 我的消息，不含订单）
    │  ├─ task_management_page.dart   # 任务管理页（增删改、启用/停用）
    │  ├─ task_review_card.dart       # 待审核卡片（通过/不通过）
    │  ├─ submission_content.dart     # 提交内容展示（文字/图片/视频/语音，卡片与详情页复用）
    │  ├─ order_detail_page.dart      # 订单详情页
    │  ├─ submission_detail_page.dart # 任务提交详情页（可直接审核）
    │  └─ media_preview_page.dart     # 媒体预览页（图片/视频）
+   ├─ message/                       # 消息中心与私聊
+   │  ├─ message_list_page.dart      # 消息中心外层列表（系统消息组 + 私聊）
+   │  ├─ order_message_page.dart     # 订单消息列表（富卡片）
+   │  └─ message_page.dart           # 与对象的私聊页（Realtime 实时收发）
    └─ home/
       ├─ home_page.dart             # 主页入口（状态管理、路由壳）
       ├─ home_page_models.dart      # 主页私有模型（购物车条目）
@@ -129,6 +138,22 @@ lib/
 | dish_id | uuid | 菜品 ID |
 | quantity | integer | 数量 |
 | price | numeric | 单价 |
+
+### messages（私聊消息表）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | uuid | 主键 |
+| sender_id | text | 发送方用户 ID（本地 UUID，不关联 auth.users） |
+| receiver_id | text | 接收方用户 ID |
+| content | text | 文本消息内容（媒体消息可为空） |
+| msg_type | text | 消息类型（text / media） |
+| media_url | text | 媒体文件公开地址（图片 / 视频 / gif） |
+| media_kind | text | 媒体类型（image / video） |
+| read_at | timestamptz | 接收方已读时间（null 表示未读） |
+| created_at | timestamptz | 发送时间 |
+
+> 私聊媒体文件存储于 Supabase Storage 桶 `dish-images`（与菜品图片共用，公开桶）。
+> 实时收发依赖 Supabase Realtime 对 `messages` 表的 `INSERT` 事件监听（WebSocket 长连接），需确保该表已加入 Realtime Publication。
 
 ### activity_tasks（活动任务配置表）
 | 字段 | 类型 | 说明 |
@@ -259,13 +284,22 @@ flutter run --release
 ## 版本信息
 
 - **应用名称**：御膳房
-- **当前版本**：1.0.3
+- **当前版本**：1.0.4
 - **开发团队**：susanbao
 
 ## 更新日志
 
+### v1.0.4 (2026-09-03)
+- 重构：消息中心 `message_list_page.dart` 聚合「系统消息」与「私聊」两大分组
+- 优化：系统消息下「活动消息」与「订单消息」合并为同一圆角卡片组（中间细线分隔），消除原先两张卡片间的空隙
+- 调整：活动消息 `notification_page` 仅保留「待我审核 / 我的消息」两个标签页，订单动态移出（不再混入活动消息）
+- 新增：订单消息 `order_message_page.dart` 采用与活动消息一致的富卡片样式（状态图标、菜品摘要、积分、时间、状态胶囊），点击进入订单详情
+- 新增：与对象的私聊 `message_page.dart`（一对一即时聊天，Supabase Realtime / WebSocket 实时收发，乐观发送，打开即标记已读，支持文字 / 图片 / 视频）
+- 移除：我的页面「我的消息」快捷入口及其遗留未读逻辑（活动未读统一由消息中心 `activityReadAt` 管理）
+- 数据库：新增 `messages` 表（迁移见 `supabase/`）
+
 ### v1.0.3 (2026-09-03)
-- 新增：消息中心 `notification_page.dart`（待我审核 / 我的消息 / 订单 三个标签页）
+- 新增：消息中心 `notification_page.dart`（活动消息：待我审核 / 我的消息）
 - 新增：活动任务系统「任务管理页 + 待审核卡片 + 提交内容展示（文字/图片/视频/语音）」
 - 新增：订单详情页 `order_detail_page.dart` 与任务提交详情页 `submission_detail_page.dart`（详情页内可直接通过/驳回审核）
 - 新增：消息列表卡片点击跳转详情页；任务详情页复用审核能力
